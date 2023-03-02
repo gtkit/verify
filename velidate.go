@@ -23,6 +23,8 @@ var _ Verify = (*verify)(nil)
 
 type Verify interface {
 	i()
+	Validate() *validator.Validate
+	Trans() ut.Translator
 	RemoveTopStruct(fields map[string]string) map[string]string
 	RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc
 	Translate(trans ut.Translator, fe validator.FieldError) string
@@ -32,8 +34,8 @@ type Verify interface {
 }
 
 type verify struct {
-	Trans    ut.Translator
-	Validate *validator.Validate
+	trans  ut.Translator
+	valida *validator.Validate
 }
 
 // 定义一个全局翻译器T
@@ -46,8 +48,8 @@ func New() Verify {
 	initlogger()
 	transValidate()
 	return &verify{
-		Trans:    trans,
-		Validate: validate,
+		trans:  trans,
+		valida: validate,
 	}
 }
 
@@ -118,6 +120,13 @@ func getTrans(locale string, v *validator.Validate) (err error) {
 }
 
 func (v *verify) i() {}
+
+func (v *verify) Validate() *validator.Validate {
+	return v.valida
+}
+func (v *verify) Trans() ut.Translator {
+	return v.trans
+}
 
 func (v *verify) RemoveTopStruct(fields map[string]string) map[string]string {
 	res := map[string]string{}
