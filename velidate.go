@@ -19,38 +19,15 @@ import (
 	"gitlab.superjq.com/go-tools/goerr"
 )
 
-var _ Verify = (*verify)(nil)
-
-type Verify interface {
-	i()
-	Validate() *validator.Validate
-	Trans() ut.Translator
-	RemoveTopStruct(fields map[string]string) map[string]string
-	RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc
-	Translate(trans ut.Translator, fe validator.FieldError) string
-	SelfRegisterTranslation(method string, info string, myFunc validator.Func) (err error)
-	AddValidationTranslation(method, info string) error
-	ErrorInfo(field string, err error) error
-}
-
-type verify struct {
-	trans  ut.Translator
-	valida *validator.Validate
-}
-
 // 定义一个全局翻译器T
 var (
 	trans    ut.Translator
 	validate *validator.Validate
 )
 
-func New() Verify {
+func New() {
 	initlogger()
 	transValidate()
-	return &verify{
-		trans:  trans,
-		valida: validate,
-	}
 }
 
 func initlogger() {
@@ -119,16 +96,14 @@ func getTrans(locale string, v *validator.Validate) (err error) {
 	return err
 }
 
-func (v *verify) i() {}
-
-func (v *verify) Validate() *validator.Validate {
-	return v.valida
+func Validate() *validator.Validate {
+	return validate
 }
-func (v *verify) Trans() ut.Translator {
-	return v.trans
+func Trans() ut.Translator {
+	return trans
 }
 
-func (v *verify) RemoveTopStruct(fields map[string]string) map[string]string {
+func RemoveTopStruct(fields map[string]string) map[string]string {
 	res := map[string]string{}
 	for field, err := range fields {
 		res[field[strings.Index(field, ".")+1:]] = err
@@ -137,7 +112,7 @@ func (v *verify) RemoveTopStruct(fields map[string]string) map[string]string {
 }
 
 // registerTranslator 为自定义字段添加翻译功能
-func (v *verify) RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
+func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
 	return func(trans ut.Translator) error {
 		if err := trans.Add(tag, msg, false); err != nil {
 			return err
@@ -147,7 +122,7 @@ func (v *verify) RegisterTranslator(tag string, msg string) validator.RegisterTr
 }
 
 // translate 自定义字段的翻译方法
-func (v *verify) Translate(trans ut.Translator, fe validator.FieldError) string {
+func Translate(trans ut.Translator, fe validator.FieldError) string {
 	msg, err := trans.T(fe.Tag(), fe.Field())
 	if err != nil {
 		panic(fe.(error).Error())
@@ -156,35 +131,35 @@ func (v *verify) Translate(trans ut.Translator, fe validator.FieldError) string 
 }
 
 // 翻译自定义校验方法
-func (v *verify) SelfRegisterTranslation(method string, info string, myFunc validator.Func) (err error) {
+func SelfRegisterTranslation(method string, info string, myFunc validator.Func) (err error) {
 
-	if err = v.Validate.RegisterValidation(method, myFunc); err != nil {
+	if err = validate.RegisterValidation(method, myFunc); err != nil {
 		return
 	}
 
-	err = v.AddValidationTranslation(method, info)
+	err = AddValidationTranslation(method, info)
 	return
 }
 
 // 完善未有的验证方法的翻译
-func (v *verify) AddValidationTranslation(method, info string) error {
-	return v.Validate.RegisterTranslation(
+func AddValidationTranslation(method, info string) error {
+	return validate.RegisterTranslation(
 		method,
 		trans,
-		v.RegisterTranslator(method, "{0}"+info),
-		v.Translate,
+		RegisterTranslator(method, "{0}"+info),
+		Translate,
 	)
 }
 
 // 普通验证字段错误信息, 字段名, 验证时的error
-func (v *verify) ErrorInfo(field string, err error) error {
+func ErrorInfo(field string, err error) error {
 
 	errs, ok := err.(validator.ValidationErrors)
 	if !ok {
 		// 非validator.ValidationErrors类型错误直接返回
 		return goerr.Wrap(err, "非validator类型错误")
 	}
-	for _, v := range v.RemoveTopStruct(errs.Translate(trans)) {
+	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
 
 		return goerr.Custom(field + " " + v)
 	}
