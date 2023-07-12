@@ -3,17 +3,14 @@ package verify
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/gtkit/logger"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
 	zhTranslations "github.com/go-playground/validator/v10/translations/zh"
 	"github.com/gtkit/goerr"
@@ -26,19 +23,7 @@ var (
 )
 
 func New() {
-	initlogger()
 	transValidate()
-}
-
-func initlogger() {
-	if logger.Zlog() == nil {
-		opt := &logger.Option{
-			FileStdout: true,
-			Division:   "size",
-		}
-		logger.NewZap(opt)
-		log.Println("redis new zap logger")
-	}
 }
 
 // 初始化验证并翻译
@@ -59,12 +44,9 @@ func transValidate() {
 	// 翻译
 	err := getTrans("zh", v)
 	if err != nil {
-		logger.Info("初始化验证翻译 error: ", err)
 		panic(err)
 	}
 	validate = v
-	logger.Info("初始化验证翻译 success")
-
 }
 
 func getTrans(locale string, v *validator.Validate) (err error) {
@@ -152,17 +134,34 @@ func AddValidationTranslation(method, info string) error {
 }
 
 // 普通验证字段错误信息, 字段名, 验证时的error
-func ErrorInfo(field string, err error) error {
-
+func ErrorInfo(field string, err error) goerr.Error {
 	errs, ok := err.(validator.ValidationErrors)
 	if !ok {
 		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.Wrap(err, "非validator类型错误")
+		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
 	}
-	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
 
-		return goerr.Custom(field + " " + v)
+	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
+		return goerr.New(goerr.Custom(field+" "+v), goerr.ErrValidateParams, "字段验证错误")
+
 	}
+	return nil
+
+}
+
+// 验证结构体错误信息
+func ErrorStruct(err error) goerr.Error {
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		// 非validator.ValidationErrors类型错误直接返回
+		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
+	}
+
+	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
+		return goerr.New(goerr.Err(v), goerr.ErrValidateParams, "字段验证错误")
+
+	}
+
 	return nil
 
 }
