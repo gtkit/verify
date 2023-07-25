@@ -135,6 +135,9 @@ func AddValidationTranslation(method, info string) error {
 
 // 普通验证字段错误信息, 字段名, 验证时的error
 func ErrorInfo(field string, err error) goerr.Error {
+	if err == nil {
+		return nil
+	}
 	errs, ok := err.(validator.ValidationErrors)
 	if !ok {
 		// 非validator.ValidationErrors类型错误直接返回
