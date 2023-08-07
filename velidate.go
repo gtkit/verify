@@ -175,7 +175,7 @@ func Error(field string, err error) goerr.Error {
 
 }
 
-// 验证结构体错误信息
+// ErrorStruct 验证结构体错误信息
 func ErrorStruct(err error) goerr.Error {
 	if err == nil {
 		return nil
@@ -194,6 +194,8 @@ func ErrorStruct(err error) goerr.Error {
 	return nil
 
 }
+
+// Struct 验证结构体错误信息
 func Struct(err error) goerr.Error {
 	if err == nil {
 		return nil
