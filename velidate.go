@@ -133,8 +133,31 @@ func AddValidationTranslation(method, info string) error {
 	)
 }
 
-// 普通验证字段错误信息, 字段名, 验证时的error
+func Field(field interface{}, tag string) error {
+	return Validate().Var(field, tag)
+}
+
+// ErrorInfo 普通验证字段错误信息, 字段名, 验证时的error
 func ErrorInfo(field string, err error) goerr.Error {
+	if err == nil {
+		return nil
+	}
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		// 非validator.ValidationErrors类型错误直接返回
+		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
+	}
+
+	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
+		return goerr.New(goerr.Custom(field+" "+v), goerr.ErrValidateParams, "字段验证错误")
+
+	}
+	return nil
+
+}
+
+// Error 验证字段错误信息, 字段名, 验证时的error
+func Error(field string, err error) goerr.Error {
 	if err == nil {
 		return nil
 	}
@@ -154,6 +177,27 @@ func ErrorInfo(field string, err error) goerr.Error {
 
 // 验证结构体错误信息
 func ErrorStruct(err error) goerr.Error {
+	if err == nil {
+		return nil
+	}
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		// 非validator.ValidationErrors类型错误直接返回
+		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
+	}
+
+	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
+		return goerr.New(goerr.Err(v), goerr.ErrValidateParams, "字段验证错误")
+
+	}
+
+	return nil
+
+}
+func Struct(err error) goerr.Error {
+	if err == nil {
+		return nil
+	}
 	errs, ok := err.(validator.ValidationErrors)
 	if !ok {
 		// 非validator.ValidationErrors类型错误直接返回
