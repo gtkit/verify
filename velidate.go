@@ -13,7 +13,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
 	zhTranslations "github.com/go-playground/validator/v10/translations/zh"
-	"github.com/gtkit/goerr"
 )
 
 // 定义一个全局翻译器T
@@ -93,7 +92,14 @@ func RemoveTopStruct(fields map[string]string) map[string]string {
 	return res
 }
 
-// registerTranslator 为自定义字段添加翻译功能
+func GetMapError(fields map[string]string) string {
+	for _, err := range fields {
+		return err
+	}
+	return ""
+}
+
+// RegisterTranslator 为自定义字段添加翻译功能
 func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
 	return func(trans ut.Translator) error {
 		if err := trans.Add(tag, msg, false); err != nil {
@@ -103,7 +109,7 @@ func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFu
 	}
 }
 
-// translate 自定义字段的翻译方法
+// Translate 自定义字段的翻译方法
 func Translate(trans ut.Translator, fe validator.FieldError) string {
 	msg, err := trans.T(fe.Tag(), fe.Field())
 	if err != nil {
@@ -112,18 +118,15 @@ func Translate(trans ut.Translator, fe validator.FieldError) string {
 	return msg
 }
 
-// 翻译自定义校验方法
+// SelfRegisterTranslation 翻译自定义校验方法
 func SelfRegisterTranslation(method string, info string, myFunc validator.Func) (err error) {
-
 	if err = validate.RegisterValidation(method, myFunc); err != nil {
 		return
 	}
-
-	err = AddValidationTranslation(method, info)
-	return
+	return AddValidationTranslation(method, info)
 }
 
-// 完善未有的验证方法的翻译
+// AddValidationTranslation 完善未有的验证方法的翻译
 func AddValidationTranslation(method, info string) error {
 	return validate.RegisterTranslation(
 		method,
@@ -131,86 +134,4 @@ func AddValidationTranslation(method, info string) error {
 		RegisterTranslator(method, "{0}"+info),
 		Translate,
 	)
-}
-
-func Field(field interface{}, tag string) error {
-	return Validate().Var(field, tag)
-}
-
-// ErrorInfo 普通验证字段错误信息, 字段名, 验证时的error
-func ErrorInfo(field string, err error) goerr.Error {
-	if err == nil {
-		return nil
-	}
-	errs, ok := err.(validator.ValidationErrors)
-	if !ok {
-		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
-	}
-
-	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
-		return goerr.New(goerr.Custom(field+" "+v), goerr.ErrValidateParams, "字段验证错误")
-
-	}
-	return nil
-
-}
-
-// Error 验证字段错误信息, 字段名, 验证时的error
-func Error(field string, err error) goerr.Error {
-	if err == nil {
-		return nil
-	}
-	errs, ok := err.(validator.ValidationErrors)
-	if !ok {
-		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
-	}
-
-	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
-		return goerr.New(goerr.Custom(field+" "+v), goerr.ErrValidateParams, "字段验证错误")
-
-	}
-	return nil
-
-}
-
-// ErrorStruct 验证结构体错误信息
-func ErrorStruct(err error) goerr.Error {
-	if err == nil {
-		return nil
-	}
-	errs, ok := err.(validator.ValidationErrors)
-	if !ok {
-		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
-	}
-
-	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
-		return goerr.New(goerr.Err(v), goerr.ErrValidateParams, "字段验证错误")
-
-	}
-
-	return nil
-
-}
-
-// Struct 验证结构体错误信息
-func Struct(err error) goerr.Error {
-	if err == nil {
-		return nil
-	}
-	errs, ok := err.(validator.ValidationErrors)
-	if !ok {
-		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
-	}
-
-	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
-		return goerr.New(goerr.Err(v), goerr.ErrValidateParams, "字段验证错误")
-
-	}
-
-	return nil
-
 }
