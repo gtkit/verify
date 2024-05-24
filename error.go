@@ -15,11 +15,11 @@ func ErrorInfo(field string, err error) goerr.Error {
 	var errs validator.ValidationErrors
 	if ok := errors.As(err, &errs); !ok {
 		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "非ValidationErrors类型错误")
+		return goerr.New(err, goerr.ValidateParams(), "非ValidationErrors类型错误")
 	}
 
 	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
-		return goerr.New(goerr.Custom(field+" "+v), goerr.ErrValidateParams, "字段验证错误")
+		return goerr.New(goerr.Err(field+" "+v), goerr.ValidateParams(), "字段验证错误")
 
 	}
 	return nil
@@ -34,11 +34,11 @@ func FieldError(field string, err error) goerr.Error {
 	var errs validator.ValidationErrors
 	if ok := errors.As(err, &errs); !ok {
 		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "字段验证错误")
+		return goerr.New(err, goerr.ValidateParams(), "字段验证错误")
 	}
 
 	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
-		return goerr.New(goerr.Custom(field+" "+v), goerr.ErrValidateParams, "字段验证错误")
+		return goerr.New(goerr.Err(field+" "+v), goerr.ValidateParams(), "字段验证错误")
 
 	}
 	return nil
@@ -53,11 +53,11 @@ func StructErr(err error) goerr.Error {
 	var errs validator.ValidationErrors
 	if ok := errors.As(err, &errs); !ok {
 		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ErrValidateParams, "非ValidationErrors类型错误")
+		return goerr.New(err, goerr.ValidateParams(), "非ValidationErrors类型错误")
 	}
 
 	for _, v := range RemoveTopStruct(errs.Translate(Trans())) {
-		return goerr.New(goerr.Err(v), goerr.ErrValidateParams, "字段验证错误")
+		return goerr.New(goerr.Err(v), goerr.ValidateParams(), "字段验证错误")
 
 	}
 	return nil
@@ -75,10 +75,10 @@ func MapErr(err map[string]any) goerr.Error {
 
 	for k, v := range err {
 		if errs, ok = v.(validator.ValidationErrors); !ok {
-			return goerr.New(nil, goerr.ErrValidateParams, "非ValidationErrors类型错误")
+			return goerr.New(nil, goerr.ValidateParams(), "非ValidationErrors类型错误")
 		}
 		if maperr := GetMapError(errs.Translate(Trans())); maperr != "" {
-			return goerr.New(goerr.Err(k+" "+maperr), goerr.ErrValidateParams, "字段验证错误")
+			return goerr.New(goerr.Err(k+" "+maperr), goerr.ValidateParams(), "字段验证错误")
 		}
 	}
 

@@ -19,7 +19,7 @@ func TestVarField(t *testing.T) {
 	err := verify.VarField(p, "required,numeric")
 	if err != nil {
 		goerr := verify.ErrorInfo("type", err)
-		log.Printf("error: %+v\n", goerr.Code())
+		log.Printf("error: %+v\n", goerr.Status())
 		t.Logf("error: %v", goerr)
 		// t.Error(goerr)
 		return
@@ -44,7 +44,7 @@ func TestVarStruct(t *testing.T) {
 		OrderShopId: "123",
 		Type:        "1",
 		Password:    "123",
-		RePassword:  "",
+		RePassword:  "123",
 		Date:        "2025-01-02",
 		Imei:        "",
 	}
@@ -62,7 +62,7 @@ func TestVarStruct(t *testing.T) {
 	// 验证结构体
 	if err := verify.VarStruct(params); err != nil {
 		goerr := verify.StructErr(err)
-		t.Logf("error: %+v\n", goerr.Code())
+		t.Logf("error: %+v\n", goerr.Status())
 		t.Error(goerr)
 		return
 	}
@@ -107,7 +107,7 @@ func TestVarMap(t *testing.T) {
 	if err := verify.VarMap(user, rules); len(err) > 0 {
 		log.Printf("verify error: %+v, len: %d\n", err, len(err))
 		goerr := verify.MapErr(err)
-		t.Logf("error: %+v\n", goerr.Code())
+		t.Logf("error: %+v\n", goerr.Status())
 		t.Error(goerr)
 		return
 	}

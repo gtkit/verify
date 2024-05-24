@@ -1,4 +1,3 @@
-// @Author xiaozhaofu 2023/3/2 11:22:00
 package verify
 
 import (
