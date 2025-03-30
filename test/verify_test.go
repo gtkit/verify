@@ -16,7 +16,7 @@ func init() {
 }
 func TestVarField(t *testing.T) {
 	p := "www.google.com"
-	err := verify.VarField(p, "required,numeric")
+	err := verify.Field(p, "required,numeric")
 	if err != nil {
 		goerr := verify.ErrorInfo("type", err)
 		log.Printf("error: %+v\n", goerr.Status())
@@ -60,7 +60,7 @@ func TestVarStruct(t *testing.T) {
 	}
 
 	// 验证结构体
-	if err := verify.VarStruct(params); err != nil {
+	if err := verify.Struct(params); err != nil {
 		goerr := verify.StructErr(err)
 		t.Logf("error: %+v\n", goerr.Status())
 		t.Error(goerr)
@@ -104,7 +104,7 @@ func TestVarMap(t *testing.T) {
 	}
 
 	// 此处err为map[string]any
-	if err := verify.VarMap(user, rules); len(err) > 0 {
+	if err := verify.Map(user, rules); len(err) > 0 {
 		log.Printf("verify error: %+v, len: %d\n", err, len(err))
 		goerr := verify.MapErr(err)
 		t.Logf("error: %+v\n", goerr.Status())
