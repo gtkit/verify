@@ -134,3 +134,10 @@ func AddValidationTranslation(method, info string) error {
 		Translate,
 	)
 }
+
+// RegisterStructValidation 自定义结构体验证方法
+func RegisterStructValidation(sl validator.StructLevelFunc, types ...any) {
+	if validate != nil {
+		validate.RegisterStructValidation(sl, types...)
+	}
+}
