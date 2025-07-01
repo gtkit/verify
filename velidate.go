@@ -47,6 +47,14 @@ func transValidate() {
 	validate = v
 }
 
+func WithRequiredStructEnabled() {
+	validator.WithRequiredStructEnabled()(validate)
+}
+
+func WithPrivateFieldValidation() {
+	validator.WithPrivateFieldValidation()(validate)
+}
+
 func getTrans(locale string, v *validator.Validate) (err error) {
 	zhT := zh.New() // 中文翻译器
 	enT := en.New() // 英文翻译器
