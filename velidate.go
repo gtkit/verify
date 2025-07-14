@@ -47,10 +47,20 @@ func transValidate() {
 	validate = v
 }
 
+// WithRequiredStructEnabled在非指针结构上启用所需标记，而不是忽略。
+//
+// 这是选择性加入行为，以保持与之前行为的向后兼容性
+// 到能够直接对结构体字段应用结构体级验证。
+//
+// 建议您启用此功能，因为它将成为v11+中的默认行为
 func WithRequiredStructEnabled() {
 	validator.WithRequiredStructEnabled()(validate)
 }
 
+// WithPrivateFieldValidation通过使用“不安全”包激活对未导出字段的验证。
+//
+// 通过选择此功能，您承认您了解风险并接受任何当前或未来的风险
+// 使用此功能的后果。
 func WithPrivateFieldValidation() {
 	validator.WithPrivateFieldValidation()(validate)
 }
@@ -58,7 +68,8 @@ func WithPrivateFieldValidation() {
 func getTrans(locale string, v *validator.Validate) (err error) {
 	zhT := zh.New() // 中文翻译器
 	enT := en.New() // 英文翻译器
-	uni := ut.New(enT, zhT, enT)
+	// uni := ut.New(enT, zhT, enT)
+	uni := ut.New(zhT, zhT, enT)
 
 	// locale 通常取决于 http 请求头的 'Accept-Language'
 	var ok bool
