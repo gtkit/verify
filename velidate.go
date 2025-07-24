@@ -149,7 +149,7 @@ func AddValidationTranslation(method, info string) error {
 	return validate.RegisterTranslation(
 		method,
 		trans,
-		RegisterTranslator(method, "{0}"+info),
+		RegisterTranslator(method, info),
 		Translate,
 	)
 }

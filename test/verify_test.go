@@ -18,7 +18,7 @@ func TestVarField(t *testing.T) {
 	p := "www.google.com"
 	err := verify.Field(p, "required,numeric")
 	if err != nil {
-		goerr := verify.ErrorInfo("type", err)
+		goerr := verify.FieldError("type", err)
 		log.Printf("error: %+v\n", goerr.Status())
 		t.Logf("error: %v", goerr)
 		// t.Error(goerr)

@@ -51,3 +51,34 @@ func Map(m map[string]any, rules map[string]any) map[string]any {
 func MapCtx(ctx context.Context, m map[string]any, rules map[string]any) map[string]any {
 	return Validate().ValidateMapCtx(ctx, m, rules)
 }
+
+type TranslationFunc func() Translation
+type ValidationFunc func() Validation
+
+type Translation struct {
+	Method string
+	Info   string
+	Func   validator.Func
+}
+
+type Validation struct {
+	Func validator.StructLevelFunc
+	Type []any
+}
+
+func RegisterValidation(fns ...ValidationFunc) {
+	for _, fn := range fns {
+		v := fn()
+		RegisterStructValidation(v.Func, v.Type)
+	}
+}
+
+func RegisterTranslation(fns ...TranslationFunc) {
+	for _, fn := range fns {
+		v := fn()
+		if err := SelfRegisterTranslation(v.Method, v.Info, v.Func); err != nil {
+			panic(err)
+		}
+	}
+
+}
