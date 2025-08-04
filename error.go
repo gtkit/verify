@@ -7,8 +7,8 @@ import (
 	"github.com/gtkit/goerr"
 )
 
-// FieldError 验证字段错误信息, 字段名, 验证时的error
-func FieldError(field string, err error, msg ...string) goerr.Error {
+// FieldErr 验证字段错误信息, 字段名, 验证时的error
+func FieldErr(field string, err error, msg ...string) goerr.Error {
 	if err == nil {
 		return nil
 	}
