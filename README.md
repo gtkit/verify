@@ -16,7 +16,7 @@ type SignUpParam struct {
 // 校验方式使用 demo
 func SignUp(c *gin.Context) {
 	// 为SignUpParam注册自定义校验方法
-	verify.Validate().RegisterStructValidation(SignUpParamStructLevelValidation, SignUpParam{})
+	verify.RegisterStructValidation(SignUpParamStructLevelValidation, SignUpParam{})
 
         // 注册自定义字段级别校验方法
 	if err := verify.SelfRegisterTranslation("checkDate", "必须要晚于当前日期", CustomFunc); err != nil {
@@ -41,10 +41,8 @@ func SignUp(c *gin.Context) {
 			return
 		}
 
-		for _, v := range verify.RemoveTopStruct(errs.Translate(verify.Trans())) {
-			resp.Error(c, goerr.New(nil, goerr.ErrValidateParams, v))
-			return
-		}
+		resp.Error(c, verify.StructErr(err))
+		return
 
 	}
 	return

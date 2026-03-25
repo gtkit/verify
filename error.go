@@ -2,6 +2,7 @@ package verify
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gtkit/goerr"
@@ -18,9 +19,8 @@ func FieldErr(field string, err error, msg ...string) goerr.Error {
 		return goerr.New(err, goerr.ValidateParams, "非ValidationErrors类型错误")
 	}
 
-	for _, v := range RemoveTopStruct(errs.Translate(trans)) {
+	if v, ok := firstSortedMessage(RemoveTopStruct(errs.Translate(Trans()))); ok {
 		return goerr.New(goerr.Err(field+" "+v), goerr.ValidateParams, msg...)
-
 	}
 	return nil
 
@@ -37,25 +37,28 @@ func StructErr(err error, msg ...string) goerr.Error {
 		return goerr.New(err, goerr.ValidateParams, "非ValidationErrors类型错误")
 	}
 
-	for _, v := range RemoveTopStruct(errs.Translate(Trans())) {
+	if v, ok := firstSortedMessage(RemoveTopStruct(errs.Translate(Trans()))); ok {
 		return goerr.New(goerr.Err(v), goerr.ValidateParams, msg...)
-
 	}
 	return nil
 }
 
 // MapErr 验证map错误信息
 func MapErr(err map[string]any, msg ...string) goerr.Error {
-	var (
-		errs validator.ValidationErrors
-		ok   bool
-	)
 	if err == nil {
 		return nil
 	}
 
-	for k, v := range err {
-		if errs, ok = v.(validator.ValidationErrors); !ok {
+	keys := make([]string, 0, len(err))
+	for key := range err {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	for _, k := range keys {
+		val := err[k]
+		errs, ok := val.(validator.ValidationErrors)
+		if !ok {
 			return goerr.New(nil, goerr.ValidateParams, "非ValidationErrors类型错误")
 		}
 		if maperr := GetMapError(errs.Translate(Trans())); maperr != "" {
@@ -64,4 +67,16 @@ func MapErr(err map[string]any, msg ...string) goerr.Error {
 	}
 
 	return nil
+}
+
+func firstSortedMessage(fields map[string]string) (string, bool) {
+	if len(fields) == 0 {
+		return "", false
+	}
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return fields[keys[0]], true
 }
