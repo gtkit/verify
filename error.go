@@ -9,42 +9,43 @@ import (
 )
 
 // FieldErr 验证字段错误信息, 字段名, 验证时的error
-func FieldErr(field string, err error, msg ...string) goerr.Error {
+func FieldErr(field string, err error, msg ...string) error {
 	if err == nil {
 		return nil
 	}
 	var errs validator.ValidationErrors
 	if ok := errors.As(err, &errs); !ok {
 		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ValidateParams, "非ValidationErrors类型错误")
+		return goerr.New(err, goerr.StatusValidateParams(), "非ValidationErrors类型错误")
 	}
 
 	if v, ok := firstSortedMessage(RemoveTopStruct(errs.Translate(Trans()))); ok {
-		return goerr.New(goerr.Err(field+" "+v), goerr.ValidateParams, msg...)
+		return goerr.New(goerr.Err(field+" "+v), goerr.StatusValidateParams(), msg...)
 	}
 	return nil
 
 }
 
 // StructErr 验证结构体错误信息
-func StructErr(err error, msg ...string) goerr.Error {
+func StructErr(err error, msg ...string) error {
 	if err == nil {
 		return nil
 	}
 	var errs validator.ValidationErrors
 	if ok := errors.As(err, &errs); !ok {
 		// 非validator.ValidationErrors类型错误直接返回
-		return goerr.New(err, goerr.ValidateParams, "非ValidationErrors类型错误")
+		//return goerr.New(err, goerr.ValidateParams, "非ValidationErrors类型错误")
+		return goerr.New(err, goerr.StatusValidateParams(), "非ValidationErrors类型错误")
 	}
 
 	if v, ok := firstSortedMessage(RemoveTopStruct(errs.Translate(Trans()))); ok {
-		return goerr.New(goerr.Err(v), goerr.ValidateParams, msg...)
+		return goerr.New(goerr.Err(v), goerr.StatusValidateParams(), msg...)
 	}
 	return nil
 }
 
 // MapErr 验证map错误信息
-func MapErr(err map[string]any, msg ...string) goerr.Error {
+func MapErr(err map[string]any, msg ...string) error {
 	if err == nil {
 		return nil
 	}
@@ -59,10 +60,10 @@ func MapErr(err map[string]any, msg ...string) goerr.Error {
 		val := err[k]
 		errs, ok := val.(validator.ValidationErrors)
 		if !ok {
-			return goerr.New(nil, goerr.ValidateParams, "非ValidationErrors类型错误")
+			return goerr.New(nil, goerr.StatusValidateParams(), "非ValidationErrors类型错误")
 		}
 		if maperr := GetMapError(errs.Translate(Trans())); maperr != "" {
-			return goerr.New(goerr.Err(k+" "+maperr), goerr.ValidateParams, msg...)
+			return goerr.New(goerr.Err(k+" "+maperr), goerr.StatusValidateParams(), msg...)
 		}
 	}
 
