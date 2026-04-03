@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gtkit/goerr"
 )
 
 // FieldErr translates a field validation error into a human-readable error.
@@ -21,10 +22,10 @@ func (ver *Verifier) FieldErr(field string, err error) error {
 	}
 	valErrs, ok := errors.AsType[validator.ValidationErrors](err)
 	if !ok {
-		return err
+		return goerr.New(err, goerr.StatusValidateParams(), "非ValidationErrors类型错误")
 	}
 	if msg, ok := firstSortedMessage(RemoveTopStruct(valErrs.Translate(ver.trans))); ok {
-		return fmt.Errorf("%s %s", field, msg)
+		return goerr.New(fmt.Errorf("%s %s", field, msg), goerr.StatusValidateParams(), "字段验证错误")
 	}
 	return nil
 }
@@ -41,10 +42,10 @@ func (ver *Verifier) StructErr(err error) error {
 	}
 	valErrs, ok := errors.AsType[validator.ValidationErrors](err)
 	if !ok {
-		return err
+		return goerr.New(err, goerr.StatusValidateParams(), "非ValidationErrors类型错误")
 	}
 	if msg, ok := firstSortedMessage(RemoveTopStruct(valErrs.Translate(ver.trans))); ok {
-		return errors.New(msg)
+		return goerr.New(goerr.Err(msg), goerr.StatusValidateParams(), "结构验证错误")
 	}
 	return nil
 }
@@ -62,7 +63,7 @@ func (ver *Verifier) MapErr(result map[string]any) error {
 	}
 	msgs := ver.AllMapErrors(result)
 	if key := firstSortedKey(msgs); key != "" {
-		return fmt.Errorf("%s %s", key, msgs[key])
+		return goerr.New(fmt.Errorf("%s %s", key, msgs[key]), goerr.StatusValidateParams(), "映射验证错误")
 	}
 	return nil
 }
