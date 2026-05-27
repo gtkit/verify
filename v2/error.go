@@ -2,7 +2,6 @@ package verify
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 
 	"github.com/go-playground/validator/v10"
@@ -113,7 +112,6 @@ func (ver *Verifier) AllMapErrors(result map[string]any) map[string]string {
 	for key, val := range result {
 		valErrs, ok := val.(validator.ValidationErrors)
 		if !ok {
-			out[key] = fmt.Sprint(val)
 			continue
 		}
 		if msg, ok := firstSortedMessage(valErrs.Translate(ver.trans)); ok {
