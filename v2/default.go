@@ -13,9 +13,9 @@ var (
 	defaultMu       sync.RWMutex
 )
 
-// Init initializes the package-level default [Verifier].
-// Safe to call concurrently. Successful initialization is sticky;
-// failed initialization can be retried.
+// Init 初始化包级默认 [Verifier]。
+// 该函数并发安全, 初始化成功后会一直生效;
+// 若初始化失败可以重试。
 func Init(opts ...Option) error {
 	defaultMu.RLock()
 	if defaultVerifier != nil {
@@ -44,14 +44,14 @@ func mustDefault() *Verifier {
 	panic("verify: not initialized — call verify.Init() first")
 }
 
-// Default returns the package-level [Verifier], or nil if not initialized.
+// Default 返回包级 [Verifier], 若尚未初始化则返回 nil。
 func Default() *Verifier {
 	defaultMu.RLock()
 	defer defaultMu.RUnlock()
 	return defaultVerifier
 }
 
-// ---------- Validation ----------
+// ---------- 校验方法 ----------
 
 func Struct(s any) error                                  { return mustDefault().Struct(s) }
 func StructCtx(ctx context.Context, s any) error          { return mustDefault().StructCtx(ctx, s) }
@@ -74,7 +74,7 @@ func MapCtx(ctx context.Context, m map[string]any, rules map[string]any) map[str
 	return mustDefault().MapCtx(ctx, m, rules)
 }
 
-// ---------- Error helpers ----------
+// ---------- 错误辅助方法 ----------
 
 func FieldErr(field string, err error) error     { return mustDefault().FieldErr(field, err) }
 func StructErr(err error) error                  { return mustDefault().StructErr(err) }
@@ -84,7 +84,7 @@ func AllMapErrors(result map[string]any) map[string]string {
 	return mustDefault().AllMapErrors(result)
 }
 
-// ---------- Registration ----------
+// ---------- 注册方法 ----------
 
 func SelfRegisterTranslation(method, info string, fn validator.Func) error {
 	return mustDefault().SelfRegisterTranslation(method, info, fn)
@@ -96,7 +96,7 @@ func RegisterStructValidation(fn validator.StructLevelFunc, types ...any) {
 	mustDefault().RegisterStructValidation(fn, types...)
 }
 
-// ---------- Accessors ----------
+// ---------- 访问器 ----------
 
 func Validate() *validator.Validate { return mustDefault().Validate() }
 func Trans() ut.Translator          { return mustDefault().Trans() }

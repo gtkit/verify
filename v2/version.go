@@ -1,4 +1,4 @@
 package verify
 
-// Version is the current version of the json package.
+// Version 当前 verify 包版本号。
 const Version = "v2.0.1"

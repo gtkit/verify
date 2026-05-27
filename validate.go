@@ -35,7 +35,7 @@ func initDefaultValidator() error {
 	globalState.once.Do(func() {
 		v := validator.New()
 		v.SetTagName("binding")
-	// 注册一个获取json tag的自定义方法
+		// 注册一个获取json tag的自定义方法
 		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
 			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
 			if name == "-" {
@@ -56,7 +56,7 @@ func initDefaultValidator() error {
 	return globalState.initErr
 }
 
-// WithRequiredStructEnabled在非指针结构上启用所需标记，而不是忽略。
+// WithRequiredStructEnabled 在非指针结构上启用所需标记，而不是忽略。
 //
 // 这是选择性加入行为，以保持与之前行为的向后兼容性
 // 到能够直接对结构体字段应用结构体级验证。
@@ -68,7 +68,7 @@ func WithRequiredStructEnabled() {
 	}
 }
 
-// WithPrivateFieldValidation通过使用“不安全”包激活对未导出字段的验证。
+// WithPrivateFieldValidation 通过使用“不安全”包激活对未导出字段的验证。
 //
 // 通过选择此功能，您承认您了解风险并接受任何当前或未来的风险
 // 使用此功能的后果。
@@ -109,21 +109,20 @@ func getTrans(locale string, v *validator.Validate) (ut.Translator, error) {
 	return trans, err
 }
 
-// Validate returns the shared validator instance.
+// Validate 返回共享的校验器实例。
 //
-// Prefer package helpers such as [SelfRegisterTranslation],
-// [AddValidationTranslation], and [RegisterStructValidation] for mutations.
-// Treat the returned validator as read-only unless you provide your own
-// external synchronization.
+// 如需变更，建议使用 [SelfRegisterTranslation]、[AddValidationTranslation]、
+// [RegisterStructValidation] 等包级辅助函数。
+// 除非你提供外部同步，否则应将返回的校验器视为只读。
 func Validate() *validator.Validate {
 	_ = initDefaultValidator()
 	return globalState.validate
 }
 
-// Trans returns the shared translator.
+// Trans 返回共享的翻译器。
 //
-// Prefer high-level helpers such as [FieldErr], [StructErr], and [MapErr].
-// Treat the returned translator as read-only.
+// 建议优先使用 [FieldErr]、[StructErr]、[MapErr] 等高层辅助函数，
+// 应将返回的翻译器视为只读。
 func Trans() ut.Translator {
 	_ = initDefaultValidator()
 	return globalState.trans

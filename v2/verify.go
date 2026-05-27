@@ -1,15 +1,15 @@
-// Package verify wraps go-playground/validator with i18n translation,
-// functional options, and optional Gin integration.
+// Package verify 在 go-playground/validator 基础上封装了 i18n 翻译、
+// functional options 和可选的 Gin 集成。
 //
-// Instance mode (recommended):
+// 实例模式（推荐）:
 //
 //	v := verify.MustNew(verify.WithLocale("zh"), verify.WithGinBinding())
 //	err := v.Struct(params)
 //	if err != nil {
-//	    return v.StructErr(err) // one line → translated error
+//	    return v.StructErr(err) // 一行即可得到翻译后的错误
 //	}
 //
-// Package-level mode (simple projects):
+// 包级模式（适用于简单项目）:
 //
 //	verify.Init(verify.WithLocale("zh"))
 //	err := verify.Struct(params)
@@ -34,17 +34,17 @@ import (
 	zhTranslations "github.com/go-playground/validator/v10/translations/zh"
 )
 
-// Verifier is a concurrency-safe validation instance.
+// Verifier 是并发安全的校验器实例。
 type Verifier struct {
 	validate *validator.Validate
 	trans    ut.Translator
 	locale   string
-	mu       sync.Mutex // protects runtime registration
+	mu       sync.Mutex // 保护运行时注册操作
 }
 
 // ---------- Options ----------
 
-// Option configures a [Verifier].
+// Option 用于配置 [Verifier] 的函数选项。
 type Option func(*config)
 
 type config struct {
@@ -55,35 +55,35 @@ type config struct {
 	tagNameFunc            func(reflect.StructField) string
 }
 
-// WithLocale sets the translation locale. Supported: "zh" (default), "en".
+// WithLocale 设置翻译使用的 locale, 支持: "zh"（默认）、"en"。
 func WithLocale(locale string) Option {
 	return func(c *config) { c.locale = locale }
 }
 
-// WithGinBinding replaces Gin's default validator engine with this instance.
+// WithGinBinding 用当前实例替换 Gin 的默认校验器引擎。
 func WithGinBinding() Option {
 	return func(c *config) { c.useGinBinding = true }
 }
 
-// WithRequiredStructEnabled enables required tag on non-pointer structs.
+// WithRequiredStructEnabled 为非指针结构体启用 required 标签。
 func WithRequiredStructEnabled() Option {
 	return func(c *config) { c.requiredStructEnabled = true }
 }
 
-// WithPrivateFieldValidation enables validation of unexported fields.
+// WithPrivateFieldValidation 启用对未导出字段的校验。
 func WithPrivateFieldValidation() Option {
 	return func(c *config) { c.privateFieldValidation = true }
 }
 
-// WithTagNameFunc sets a custom field name resolver for error messages.
-// Default: [JSONTagName].
+// WithTagNameFunc 设置错误信息中显示字段名所使用的自定义解析函数。
+// 默认: [JSONTagName]。
 func WithTagNameFunc(fn func(reflect.StructField) string) Option {
 	return func(c *config) { c.tagNameFunc = fn }
 }
 
 // ---------- Constructor ----------
 
-// New creates a new [Verifier].
+// New 创建一个新的 [Verifier]。
 func New(opts ...Option) (*Verifier, error) {
 	cfg := &config{locale: "zh"}
 	for _, opt := range opts {
@@ -121,7 +121,7 @@ func New(opts ...Option) (*Verifier, error) {
 	return ver, nil
 }
 
-// MustNew is like [New] but panics on error. Use only in main/init.
+// MustNew 与 [New] 类似, 但出错时直接 panic。仅在 main/init 中使用。
 func MustNew(opts ...Option) *Verifier {
 	v, err := New(opts...)
 	if err != nil {
@@ -132,7 +132,7 @@ func MustNew(opts ...Option) *Verifier {
 
 // ---------- Tag Name Helpers ----------
 
-// JSONTagName extracts the JSON tag name (default).
+// JSONTagName 提取字段的 json tag 名称（默认实现）。
 func JSONTagName(fld reflect.StructField) string {
 	name, _, _ := strings.Cut(fld.Tag.Get("json"), ",")
 	if name == "-" {
@@ -141,7 +141,7 @@ func JSONTagName(fld reflect.StructField) string {
 	return name
 }
 
-// FormTagName extracts the "form" tag name, useful for Gin form binding.
+// FormTagName 提取字段的 form tag 名称, 适用于 Gin 表单绑定。
 func FormTagName(fld reflect.StructField) string {
 	name, _, _ := strings.Cut(fld.Tag.Get("form"), ",")
 	if name == "-" {
@@ -179,60 +179,60 @@ func setupTranslator(locale string, v *validator.Validate) (ut.Translator, error
 
 // ---------- Validation Methods ----------
 
-// Struct validates a struct.
+// Struct 校验一个结构体。
 func (ver *Verifier) Struct(s any) error {
 	return ver.validate.Struct(s)
 }
 
-// StructCtx validates a struct with context.
+// StructCtx 带 context 地校验一个结构体。
 func (ver *Verifier) StructCtx(ctx context.Context, s any) error {
 	return ver.validate.StructCtx(ctx, s)
 }
 
-// Field validates a single variable against the given tag.
+// Field 根据给定 tag 校验单个变量。
 func (ver *Verifier) Field(field any, tag string) error {
 	return ver.validate.Var(field, tag)
 }
 
-// FieldCtx validates a single variable with context.
+// FieldCtx 带 context 地校验单个变量。
 func (ver *Verifier) FieldCtx(ctx context.Context, field any, tag string) error {
 	return ver.validate.VarCtx(ctx, field, tag)
 }
 
-// WithValue validates field1 against field2 using the tag.
+// WithValue 根据 tag 比较 field1 与 field2。
 func (ver *Verifier) WithValue(field1, field2 any, tag string) error {
 	return ver.validate.VarWithValue(field1, field2, tag)
 }
 
-// WithValueCtx validates field1 against field2 with context.
+// WithValueCtx 带 context 地比较 field1 与 field2。
 func (ver *Verifier) WithValueCtx(ctx context.Context, field1, field2 any, tag string) error {
 	return ver.validate.VarWithValueCtx(ctx, field1, field2, tag)
 }
 
-// StructFiltered validates a struct with a filter function.
+// StructFiltered 使用过滤函数校验结构体。
 func (ver *Verifier) StructFiltered(s any, fn validator.FilterFunc) error {
 	return ver.validate.StructFiltered(s, fn)
 }
 
-// StructFilteredCtx validates a struct with filter and context.
+// StructFilteredCtx 使用过滤函数并带 context 地校验结构体。
 func (ver *Verifier) StructFilteredCtx(ctx context.Context, s any, fn validator.FilterFunc) error {
 	return ver.validate.StructFilteredCtx(ctx, s, fn)
 }
 
-// Map validates a map against rules. Returns nil if valid, otherwise
-// a map of field -> error (same as validator.ValidateMap).
+// Map 根据规则校验 map。校验通过时返回 nil, 否则返回
+// 字段 -> 错误 的 map（与 validator.ValidateMap 行为一致）。
 func (ver *Verifier) Map(m map[string]any, rules map[string]any) map[string]any {
 	return ver.validate.ValidateMap(m, rules)
 }
 
-// MapCtx validates a map with context.
+// MapCtx 带 context 地校验 map。
 func (ver *Verifier) MapCtx(ctx context.Context, m map[string]any, rules map[string]any) map[string]any {
 	return ver.validate.ValidateMapCtx(ctx, m, rules)
 }
 
 // ---------- Registration ----------
 
-// SelfRegisterTranslation registers a custom validation method with translation.
+// SelfRegisterTranslation 注册自定义校验方法及其翻译。
 //
 //	v.SelfRegisterTranslation("checkDate", "必须要晚于当前日期", CheckDate)
 func (ver *Verifier) SelfRegisterTranslation(method, info string, fn validator.Func) error {
@@ -245,7 +245,7 @@ func (ver *Verifier) SelfRegisterTranslation(method, info string, fn validator.F
 	return ver.addValidationTranslationLocked(method, info)
 }
 
-// AddValidationTranslation adds a translation for an existing validation tag.
+// AddValidationTranslation 为已有的校验 tag 追加翻译。
 //
 //	v.AddValidationTranslation("required_if", "{0}为必填字段")
 func (ver *Verifier) AddValidationTranslation(method, info string) error {
@@ -264,7 +264,7 @@ func (ver *Verifier) addValidationTranslationLocked(method, info string) error {
 	)
 }
 
-// RegisterStructValidation registers struct-level validation.
+// RegisterStructValidation 注册结构体级别的校验方法。
 func (ver *Verifier) RegisterStructValidation(fn validator.StructLevelFunc, types ...any) {
 	ver.mu.Lock()
 	defer ver.mu.Unlock()
@@ -273,14 +273,14 @@ func (ver *Verifier) RegisterStructValidation(fn validator.StructLevelFunc, type
 
 // ---------- Translation Helpers ----------
 
-// RegisterTranslator returns a [validator.RegisterTranslationsFunc] for the given tag and message.
+// RegisterTranslator 根据给定的 tag 与提示信息返回一个 [validator.RegisterTranslationsFunc]。
 func RegisterTranslator(tag, msg string) validator.RegisterTranslationsFunc {
 	return func(trans ut.Translator) error {
 		return trans.Add(tag, msg, true)
 	}
 }
 
-// Translate is a [validator.TranslationFunc] that translates a field error.
+// Translate 是一个 [validator.TranslationFunc], 用于翻译字段错误。
 func Translate(trans ut.Translator, fe validator.FieldError) string {
 	msg, err := trans.T(fe.Tag(), fe.Field())
 	if err != nil {
@@ -292,8 +292,8 @@ func Translate(trans ut.Translator, fe validator.FieldError) string {
 	return msg
 }
 
-// RemoveTopStruct strips the top-level struct name from translated field keys.
-// "OrderParams.name" → "name"
+// RemoveTopStruct 去掉翻译后字段 key 前面的顶层结构体名。
+// 例如 "OrderParams.name" → "name"
 func RemoveTopStruct(fields map[string]string) map[string]string {
 	res := make(map[string]string, len(fields))
 	for field, msg := range fields {
@@ -319,11 +319,11 @@ func firstSortedMessage(fields map[string]string) (string, bool) {
 
 // ---------- Accessors ----------
 
-// Validate returns the underlying *validator.Validate.
+// Validate 返回底层的 *validator.Validate。
 func (ver *Verifier) Validate() *validator.Validate { return ver.validate }
 
-// Trans returns the active translator.
+// Trans 返回当前生效的翻译器。
 func (ver *Verifier) Trans() ut.Translator { return ver.trans }
 
-// Locale returns the configured locale.
+// Locale 返回配置的 locale。
 func (ver *Verifier) Locale() string { return ver.locale }
