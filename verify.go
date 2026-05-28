@@ -105,6 +105,10 @@ type Validation struct {
 	Type []any
 }
 
+// RegisterValidation registers struct-level validations returned by fns.
+//
+// Deprecated: 请使用 [New] 的 [WithStructValidation] Functional Option, 在应用
+// 启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
 func RegisterValidation(fns ...ValidationFunc) {
 	for _, fn := range fns {
 		v := fn()
@@ -112,6 +116,10 @@ func RegisterValidation(fns ...ValidationFunc) {
 	}
 }
 
+// RegisterTranslation registers field validations and translations returned by fns.
+//
+// Deprecated: 请使用 [New] 的 [WithTranslation] Functional Option, 在应用
+// 启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
 func RegisterTranslation(fns ...TranslationFunc) error {
 	errs := make([]error, 0, len(fns))
 	for _, fn := range fns {

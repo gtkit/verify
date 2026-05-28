@@ -1,3 +1,3 @@
 package verify
 
-const Version = "v1.1.11"
+const Version = "v1.2.0"

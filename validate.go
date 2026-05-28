@@ -101,6 +101,9 @@ func initValidator(v *validator.Validate) (ut.Translator, error) {
 //
 // 仅应在应用启动阶段、任何校验发生前调用。新代码优先使用
 // [EnableRequiredStructValidation] 作为 [New] 的 Functional Option。
+//
+// Deprecated: 请使用 [New] 的 [EnableRequiredStructValidation] Functional
+// Option, 在应用启动阶段一次性完成配置。本函数将在 v2.0.0 移除。
 func WithRequiredStructEnabled() {
 	if v := Validate(); v != nil {
 		globalState.regMu.Lock()
@@ -114,6 +117,9 @@ func WithRequiredStructEnabled() {
 // 通过选择此功能，您承认您了解风险并接受任何当前或未来的风险
 // 使用此功能的后果。仅应在应用启动阶段、任何校验发生前调用。新代码
 // 优先使用 [EnablePrivateFieldValidation] 作为 [New] 的 Functional Option。
+//
+// Deprecated: 请使用 [New] 的 [EnablePrivateFieldValidation] Functional
+// Option, 在应用启动阶段一次性完成配置。本函数将在 v2.0.0 移除。
 func WithPrivateFieldValidation() {
 	if v := Validate(); v != nil {
 		globalState.regMu.Lock()
@@ -138,6 +144,9 @@ func getTrans(v *validator.Validate) (ut.Translator, error) {
 // 如需变更，建议使用 [SelfRegisterTranslation]、[AddValidationTranslation]、
 // [RegisterStructValidation] 等包级辅助函数。
 // 除非你提供外部同步，否则应将返回的校验器视为只读。
+//
+// 如未先成功调用 [New], 本函数可能返回 nil。生产代码应当先检查
+// [New] 的返回错误, 再使用本函数。
 func Validate() *validator.Validate {
 	_ = initDefaultValidator()
 	return globalState.validate
@@ -147,6 +156,9 @@ func Validate() *validator.Validate {
 //
 // 建议优先使用 [FieldErr]、[StructErr]、[MapErr] 等高层辅助函数，
 // 应将返回的翻译器视为只读。
+//
+// 如未先成功调用 [New], 本函数可能返回 nil。生产代码应当先检查
+// [New] 的返回错误, 再使用本函数。
 func Trans() ut.Translator {
 	_ = initDefaultValidator()
 	return globalState.trans
@@ -195,6 +207,9 @@ func Translate(trans ut.Translator, fe validator.FieldError) string {
 // 仅应在应用启动阶段、任何校验发生前调用。该函数只串行化 verify 包内
 // 的注册写操作, 不提供注册与 Gin/validator 校验并发执行时的安全保证。
 // 新代码优先使用 [WithTranslation] 作为 [New] 的 Functional Option。
+//
+// Deprecated: 请使用 [New] 的 [WithTranslation] Functional Option, 在应用
+// 启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
 func SelfRegisterTranslation(method string, info string, myFunc validator.Func) (err error) {
 	v := Validate()
 	if v == nil {
@@ -203,19 +218,7 @@ func SelfRegisterTranslation(method string, info string, myFunc validator.Func) 
 
 	globalState.regMu.Lock()
 	defer globalState.regMu.Unlock()
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("register validation %q: %v", method, r)
-		}
-	}()
-
-	if err = v.RegisterValidation(method, myFunc); err != nil {
-		return fmt.Errorf("register validation %q: %w", method, err)
-	}
-	if err = addValidationTranslationLocked(v, globalState.trans, method, info); err != nil {
-		return fmt.Errorf("register translation %q: %w", method, err)
-	}
-	return nil
+	return registerValidationAndTranslationLocked(v, globalState.trans, method, info, myFunc)
 }
 
 // AddValidationTranslation 完善未有的验证方法的翻译。
@@ -223,6 +226,9 @@ func SelfRegisterTranslation(method string, info string, myFunc validator.Func) 
 // 仅应在应用启动阶段、任何校验发生前调用。该函数只串行化 verify 包内
 // 的注册写操作, 不提供注册与 Gin/validator 校验并发执行时的安全保证。
 // 新代码优先使用 [WithValidationTranslation] 作为 [New] 的 Functional Option。
+//
+// Deprecated: 请使用 [New] 的 [WithValidationTranslation] Functional Option,
+// 在应用启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
 func AddValidationTranslation(method, info string) error {
 	v := Validate()
 	if v == nil {
@@ -244,11 +250,34 @@ func addValidationTranslationLocked(v *validator.Validate, trans ut.Translator, 
 	)
 }
 
+// registerValidationAndTranslationLocked 注册校验函数和对应翻译。
+// 调用方必须在 globalState.regMu 锁内调用。
+func registerValidationAndTranslationLocked(v *validator.Validate, trans ut.Translator, method, info string, fn validator.Func) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("register validation %q: %v", method, r)
+		}
+	}()
+	if err := v.RegisterValidation(method, fn); err != nil {
+		return fmt.Errorf("register validation %q: %w", method, err)
+	}
+	if err := addValidationTranslationLocked(v, trans, method, info); err != nil {
+		return fmt.Errorf("register translation %q: %w", method, err)
+	}
+	return nil
+}
+
 // RegisterStructValidation 自定义结构体验证方法。
 //
 // 仅应在应用启动阶段、任何校验发生前调用。该函数只串行化 verify 包内
 // 的注册写操作, 不提供注册与 Gin/validator 校验并发执行时的安全保证。
 // 新代码优先使用 [WithStructValidation] 作为 [New] 的 Functional Option。
+//
+// 如未先成功调用 [New], 本函数会静默退化为不注册。生产代码应当先检查
+// [New] 的返回错误, 再使用本函数。
+//
+// Deprecated: 请使用 [New] 的 [WithStructValidation] Functional Option, 在应用
+// 启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
 func RegisterStructValidation(sl validator.StructLevelFunc, types ...any) {
 	v := Validate()
 	if v == nil {
