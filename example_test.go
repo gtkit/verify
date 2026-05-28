@@ -22,7 +22,6 @@ func ExampleStructErr() {
 		Email string `json:"email" binding:"required,email"`
 	}
 
-	err := verify.Struct(User{Email: "bad"})
-	fmt.Println(verify.StructErr(err) != nil)
-	// Output: true
+	fmt.Println(verify.StructErr(verify.Struct(User{Email: "bad"})))
+	// Output: email必须是一个有效的邮箱
 }
