@@ -103,41 +103,44 @@ func MapCtx(ctx context.Context, m map[string]any, rules map[string]any) map[str
 	return v.ValidateMapCtx(ctx, m, rules)
 }
 
-// TranslationFunc returns a field validation and translation registration.
+// TranslationFunc 返回一条自定义字段校验及其翻译注册。
 //
-// Deprecated: 请使用 [New] 的 [WithTranslation] Functional Option, 在应用
-// 启动阶段一次性完成所有注册。本类型将在 v2.0.0 移除。
+// 与 [New] 的 [WithTranslation] Functional Option 并列, 适用于多模块各自
+// 维护翻译表、不便集中到 main 的场景。注册必须在应用启动阶段、任何校验
+// 发生前完成; validator/v10 不保证注册与校验并发安全。
 type TranslationFunc func() Translation
 
-// ValidationFunc returns a struct-level validation registration.
+// ValidationFunc 返回一条结构体级校验注册。
 //
-// Deprecated: 请使用 [New] 的 [WithStructValidation] Functional Option, 在应用
-// 启动阶段一次性完成所有注册。本类型将在 v2.0.0 移除。
+// 与 [New] 的 [WithStructValidation] Functional Option 并列, 适用于多模块
+// 各自维护校验规则、不便集中到 main 的场景。注册必须在应用启动阶段、
+// 任何校验发生前完成。
 type ValidationFunc func() Validation
 
-// Translation describes a legacy field validation and translation registration.
+// Translation 描述一条字段校验及其翻译注册。
 //
-// Deprecated: 请使用 [New] 的 [WithTranslation] Functional Option, 在应用
-// 启动阶段一次性完成所有注册。本类型将在 v2.0.0 移除。
+// 通常配合 [RegisterTranslation] 使用; 集中注册可改用 [New] 的
+// [WithTranslation] Functional Option。
 type Translation struct {
 	Method string
 	Info   string
 	Func   validator.Func
 }
 
-// Validation describes a legacy struct-level validation registration.
+// Validation 描述一条结构体级校验注册。
 //
-// Deprecated: 请使用 [New] 的 [WithStructValidation] Functional Option, 在应用
-// 启动阶段一次性完成所有注册。本类型将在 v2.0.0 移除。
+// 通常配合 [RegisterValidation] 使用; 集中注册可改用 [New] 的
+// [WithStructValidation] Functional Option。
 type Validation struct {
 	Func validator.StructLevelFunc
 	Type []any
 }
 
-// RegisterValidation registers struct-level validations returned by fns.
+// RegisterValidation 批量注册 fns 返回的结构体级校验。
 //
-// Deprecated: 请使用 [New] 的 [WithStructValidation] Functional Option, 在应用
-// 启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
+// 与 [New] 的 [WithStructValidation] Functional Option 并列, 适用于多模块
+// 各自维护校验规则、不便集中到 main 的场景。注册必须在应用启动阶段、
+// 任何校验发生前完成。
 func RegisterValidation(fns ...ValidationFunc) {
 	for _, fn := range fns {
 		v := fn()
@@ -145,10 +148,11 @@ func RegisterValidation(fns ...ValidationFunc) {
 	}
 }
 
-// RegisterTranslation registers field validations and translations returned by fns.
+// RegisterTranslation 批量注册 fns 返回的字段校验及其翻译。
 //
-// Deprecated: 请使用 [New] 的 [WithTranslation] Functional Option, 在应用
-// 启动阶段一次性完成所有注册。本函数将在 v2.0.0 移除。
+// 与 [New] 的 [WithTranslation] Functional Option 并列, 适用于多模块各自
+// 维护翻译表、不便集中到 main 的场景。注册必须在应用启动阶段、任何校验
+// 发生前完成。多个 fn 注册失败的错误通过 [errors.Join] 聚合返回。
 func RegisterTranslation(fns ...TranslationFunc) error {
 	errs := make([]error, 0, len(fns))
 	for _, fn := range fns {

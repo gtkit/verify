@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-05-28
+
+### Changed
+- 撤回 `RegisterTranslation`、`SelfRegisterTranslation`、`AddValidationTranslation`、`RegisterValidation`、`RegisterStructValidation`、`WithRequiredStructEnabled`、`WithPrivateFieldValidation` 以及 `TranslationFunc`/`ValidationFunc`/`Translation`/`Validation` 类型的 deprecation 标记, 它们与 `New(opts...)` Functional Options 并列, 为多模块各自维护校验/翻译、不便集中到 main 的场景提供散注册路径。v2.0.0 不再计划移除。
+- 内部错误消息 helper `Translate`、`RegisterTranslator`、`RemoveTopStruct`、`GetMapError` 维持 deprecated, 仍建议改用 `FieldErr`/`StructErr`/`MapErr`。
+
 ## [1.2.1] - 2026-05-28
 
 ### Fixed
