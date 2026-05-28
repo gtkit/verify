@@ -88,41 +88,41 @@ func CheckName(fl validator.FieldLevel) bool {
 }
 ```
 
-#### VarField 验证变量字段
+#### Field 验证变量字段
 ```
 var b = "true"
-err = verify.VarField(b, "bool") 
+err = verify.Field(b, "bool")
 
 var i = "100"
-err = verify.VarField(i, "number,gt=1,lt=101")
+err = verify.Field(i, "number,gt=1,lt=101")
 
 var f = "100.132"
-err = verify.VarField(f, "numeric,gte=100,lte=1000")
+err = verify.Field(f, "numeric,gte=100,lte=1000")
 
 var str = "abcdef"
-err = verify.VarField(str, "string,min=4,max=10")
+err = verify.Field(str, "string,min=4,max=10")
 
 var arr = []string{"a", "b", "c"}
-err = verify.VarField(arr, "len=3,max=5")
+err = verify.Field(arr, "len=3,max=5")
 
 var map1 = map[string]string{"a": "1", "b": "2", "c": "3"}
-err = verify.VarField(map1, "len=3,max=5")
+err = verify.Field(map1, "len=3,max=5")
 
 var timeStr = time.Now().Format("2006-01-02  15:04:05")
-err = verify.VarField(timeStr, "datetime=2006-01-02 15:04:05")
+err = verify.Field(timeStr, "datetime=2006-01-02 15:04:05")
 ```
-#### VarWithValue
+#### WithValue
 ```
 s1 := "abc"
 s2 := "cda"
-err := verify.VarWithValue(s1, s2, "eqfield")
+err := verify.WithValue(s1, s2, "eqfield")
 ```
-#### VarStruct 验证结构体字段
+#### Struct 验证结构体字段
 ```
 type User struct {
-    Username string `json:"username" validate:"required"`
-    Email    string `json:"email" validate:"required,email"`
-    Age      uint8  `json:"age" validate:"gte=0,lte=120"`
+    Username string `json:"username" binding:"required"`
+    Email    string `json:"email" binding:"required,email"`
+    Age      uint8  `json:"age" binding:"gte=0,lte=120"`
 }
 
 user := User{
@@ -131,37 +131,37 @@ user := User{
     Age:      121,
 }
 
-err := verify.VarStruct(user) 
+err := verify.Struct(user)
 
 ```
-#### VarMap 验证map字段
+#### Map 验证map字段
 ```
-user := map[string]interface{} {
+user := map[string]any {
         "name": "hdddccccc",
         "emain": "hddd@google.com",
     }
 
-rules := map[string]interface{} {
+rules := map[string]any {
     "name": "required,min=8,max=15",
     "email": "omitempty,email",
 }
-err := verify.VarMap(user, rules) // 此处 err 为 map[string]any   类型
-if err!= nil {
+errs := verify.Map(user, rules)
+if err := verify.MapErr(errs); err != nil {
     fmt.Println(err.Error())
 }
 
 
 // 集合嵌套验证
-data := map[string]interface{} {
+data := map[string]any {
         "name": "ddkalsj",
         "email": "djsta@as.com",
-        "details": map[string]interface{}{
-            "contact_address": map[string]interface{}{
+        "details": map[string]any{
+            "contact_address": map[string]any{
                 "province": "湖南",
                 "city":     "长沙",
             },
             "age": 18,
-            "phones": []map[string]interface{}{
+            "phones": []map[string]any{
                 {
                     "number": "11-111-1111",
                     "remark": "home",
@@ -174,24 +174,24 @@ data := map[string]interface{} {
         },
     }
 
-rules := map[string]interface{}{
+rules := map[string]any{
         "name":  "min=4,max=15",
         "email": "required,email",
-        "details": map[string]interface{}{
-            "contact_address": map[string]interface{}{
+        "details": map[string]any{
+            "contact_address": map[string]any{
                 "province": "required",
                 "city":     "required",
             },
             "age": "numeric,min=18",
-            "phones": map[string]interface{}{
+            "phones": map[string]any{
                 "number": "required,min=4,max=32",
                 "remark": "required,min=1,max=32",
             },
         },
     }
 
-err := verify.VarMap(data, rules) // 此处 err 为 map[string]any   类型
-if err!= nil {
+errs := verify.Map(data, rules)
+if err := verify.MapErr(errs); err != nil {
     fmt.Println(err.Error())
 }
 ```

@@ -75,6 +75,32 @@ func TestMapErrDeterministicOrder(t *testing.T) {
 	}
 }
 
+func TestTranslateFallsBackWithNilTranslator(t *testing.T) {
+	resetGlobalStateForTest(t)
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	fe := mustFieldError(t, "payload.a_field", "a_field", "required")
+	if got := Translate(nil, fe); got != "a_field required" {
+		t.Fatalf("Translate(nil) = %q, want %q", got, "a_field required")
+	}
+}
+
+func TestRemoveTopStructKeepsBareFieldName(t *testing.T) {
+	got := RemoveTopStruct(map[string]string{
+		"name":          "required",
+		"payload.email": "email",
+	})
+
+	if got["name"] != "required" {
+		t.Fatalf("expected bare field to be kept, got %#v", got)
+	}
+	if got["email"] != "email" {
+		t.Fatalf("expected top struct to be removed, got %#v", got)
+	}
+}
+
 func mustFieldError(t *testing.T, namespace, field, tag string) validator.FieldError {
 	t.Helper()
 

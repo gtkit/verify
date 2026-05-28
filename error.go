@@ -4,7 +4,6 @@ import (
 	"errors"
 	"slices"
 
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/gtkit/goerr"
 )
@@ -93,21 +92,9 @@ func translateValidationErrors(errs validator.ValidationErrors) map[string]strin
 	fields := make(map[string]string, len(errs))
 	trans := Trans()
 	for _, fe := range errs {
-		fields[fe.Namespace()] = translateFieldError(trans, fe)
+		fields[fe.Namespace()] = Translate(trans, fe)
 	}
 	return RemoveTopStruct(fields)
-}
-
-func translateFieldError(trans ut.Translator, fe validator.FieldError) string {
-	if trans != nil {
-		if msg, err := trans.T(fe.Tag(), fe.Field()); err == nil {
-			return msg
-		}
-	}
-	if field := fe.Field(); field != "" {
-		return field + " " + fe.Tag()
-	}
-	return fe.Tag()
 }
 
 func firstSortedMessage(fields map[string]string) (string, bool) {
