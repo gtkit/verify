@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/gtkit/goerr"
 )
@@ -97,9 +98,7 @@ func translateValidationErrors(errs validator.ValidationErrors) map[string]strin
 	return RemoveTopStruct(fields)
 }
 
-func translateFieldError(trans interface {
-	T(key any, params ...string) (string, error)
-}, fe validator.FieldError) string {
+func translateFieldError(trans ut.Translator, fe validator.FieldError) string {
 	if trans != nil {
 		if msg, err := trans.T(fe.Tag(), fe.Field()); err == nil {
 			return msg
