@@ -1,0 +1,21 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.11.4
+      - run: go vet ./...
+      - run: go test -race -count=1 -timeout=5m -coverprofile=coverage.out ./...
+      - run: go test -bench=. -benchmem -count=1 -run=^$ ./...

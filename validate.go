@@ -13,16 +13,16 @@ import (
 	zhTranslations "github.com/go-playground/validator/v10/translations/zh"
 )
 
+type state struct {
+	once     sync.Once
+	initErr  error
+	trans    ut.Translator
+	validate *validator.Validate
+	regMu    sync.Mutex
+}
+
 // globalState 保存 Gin 共享 validator 的初始化状态和注册锁。
-var (
-	globalState struct {
-		once     sync.Once
-		initErr  error
-		trans    ut.Translator
-		validate *validator.Validate
-		regMu    sync.Mutex
-	}
-)
+var globalState state
 
 func validatorOrError() (*validator.Validate, error) {
 	if err := initDefaultValidator(); err != nil {
@@ -36,7 +36,8 @@ func validatorOrError() (*validator.Validate, error) {
 // Call New during application startup before any Gin ShouldBind* call, so
 // validator field-name caches use the external json field names. Options and
 // registration helpers must also run before any validation; validator/v10 does
-// not make registration safe while validation is running.
+// not make registration safe while validation is running. Nil options are
+// ignored.
 func New(opts ...Option) error {
 	if err := initDefaultValidator(); err != nil {
 		return err
@@ -155,7 +156,7 @@ func Validate() *validator.Validate {
 
 // Trans 返回共享的翻译器。
 //
-// 建议优先使用 [FieldErr]、[StructErr]、[MapErr] 等高层辅助函数，
+// 建议优先使用 [FieldErr]、[StructErr]、[MapErr] 等高层辅助函数,
 // 应将返回的翻译器视为只读。
 //
 // 如未先成功调用 [New], 本函数可能返回 nil。生产代码应当先检查
@@ -170,6 +171,10 @@ func Trans() ut.Translator {
 // Deprecated: 请使用 [FieldErr]、[StructErr] 或 [MapErr] 获取对外错误消息。
 // 本函数将在 v2.0.0 移除。
 func RemoveTopStruct(fields map[string]string) map[string]string {
+	return removeTopStruct(fields)
+}
+
+func removeTopStruct(fields map[string]string) map[string]string {
 	res := map[string]string{}
 	for field, err := range fields {
 		_, key, ok := strings.Cut(field, ".")
@@ -185,6 +190,10 @@ func RemoveTopStruct(fields map[string]string) map[string]string {
 //
 // Deprecated: 请使用 [MapErr] 获取对外错误消息。本函数将在 v2.0.0 移除。
 func GetMapError(fields map[string]string) string {
+	return getMapError(fields)
+}
+
+func getMapError(fields map[string]string) string {
 	msg, _ := firstSortedMessage(fields)
 	return msg
 }
@@ -195,6 +204,10 @@ func GetMapError(fields map[string]string) string {
 // [WithValidationTranslation] Functional Option, 在应用启动阶段一次性完成注册。
 // 本函数将在 v2.0.0 移除。
 func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
+	return registerTranslator(tag, msg)
+}
+
+func registerTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
 	return func(trans ut.Translator) error {
 		return trans.Add(tag, msg, true)
 	}
@@ -205,6 +218,10 @@ func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFu
 // Deprecated: 请使用 [FieldErr]、[StructErr] 或 [MapErr] 获取对外错误消息。
 // 本函数将在 v2.0.0 移除。
 func Translate(trans ut.Translator, fe validator.FieldError) string {
+	return translate(trans, fe)
+}
+
+func translate(trans ut.Translator, fe validator.FieldError) string {
 	if trans != nil {
 		if msg, err := trans.T(fe.Tag(), fe.Field()); err == nil {
 			return msg
@@ -259,8 +276,8 @@ func addValidationTranslationLocked(v *validator.Validate, trans ut.Translator, 
 	return v.RegisterTranslation(
 		method,
 		trans,
-		RegisterTranslator(method, info),
-		Translate,
+		registerTranslator(method, info),
+		translate,
 	)
 }
 

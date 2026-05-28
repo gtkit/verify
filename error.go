@@ -75,7 +75,7 @@ func MapErr(err map[string]any, msg ...string) error {
 		if !ok {
 			continue
 		}
-		maperr := GetMapError(translateValidationErrors(errs))
+		maperr := getMapError(translateValidationErrors(errs))
 		if maperr == "" {
 			continue
 		}
@@ -92,9 +92,9 @@ func translateValidationErrors(errs validator.ValidationErrors) map[string]strin
 	fields := make(map[string]string, len(errs))
 	trans := Trans()
 	for _, fe := range errs {
-		fields[fe.Namespace()] = Translate(trans, fe)
+		fields[fe.Namespace()] = translate(trans, fe)
 	}
-	return RemoveTopStruct(fields)
+	return removeTopStruct(fields)
 }
 
 func firstSortedMessage(fields map[string]string) (string, bool) {

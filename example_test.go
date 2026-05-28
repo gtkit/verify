@@ -8,13 +8,20 @@ import (
 )
 
 func ExampleNew() {
-	err := verify.New(
-		verify.WithTranslation("example_name", "名字格式不对", func(fl validator.FieldLevel) bool {
+	if err := verify.New(
+		verify.WithTranslation("name_is_tom", "{0}必须是 tom", func(fl validator.FieldLevel) bool {
 			return fl.Field().String() == "tom"
 		}),
-	)
-	fmt.Println(err == nil)
-	// Output: true
+	); err != nil {
+		return
+	}
+
+	type User struct {
+		Name string `json:"name" binding:"name_is_tom"`
+	}
+
+	fmt.Println(verify.StructErr(verify.Struct(User{Name: "alice"})))
+	// Output: name必须是 tom
 }
 
 func ExampleStructErr() {

@@ -19,6 +19,7 @@
 
 ### Deprecated
 - 废弃 `SelfRegisterTranslation`、`AddValidationTranslation`、`RegisterStructValidation`、`RegisterValidation`、`RegisterTranslation`、`WithRequiredStructEnabled`、`WithPrivateFieldValidation`, 请改用 `New` 的 Functional Options。
+- 废弃 `Translate`、`RegisterTranslator`、`RemoveTopStruct`、`GetMapError` 4 个内部 helper 的对外导出, 请改用 `FieldErr`、`StructErr`、`MapErr` 高层错误处理函数。
 
 ### Removed
 - 移除导入阶段自动初始化行为, 统一由调用方在启动阶段显式调用 `New()`。
