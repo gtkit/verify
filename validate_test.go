@@ -7,6 +7,56 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// 复现并防回归: len/min/max/oneof 等带参数内置 tag 必须被翻译成中文长度提示,
+// 而不是退化成 "Field tag" 形式。validator/v10 的 zh 包对这类 tag 用
+// customTransFunc 拼装翻译, 翻译表里并不存在直接以 tag 命名的 key,
+// 故顶层翻译入口必须走 fe.Translate(trans), 不能简单 trans.T(tag, field)。
+func TestTranslateBuiltinParamTags(t *testing.T) {
+	resetGlobalStateForTest(t)
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	type payload struct {
+		SceneID string `json:"scene_id" binding:"required,len=20"`
+		Name    string `json:"name" binding:"required,min=8"`
+		Title   string `json:"title" binding:"required,max=3"`
+		Channel string `json:"channel" binding:"required,oneof=a b c"`
+	}
+
+	err := Struct(payload{SceneID: "abc", Name: "ab", Title: "abcd", Channel: "x"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		t.Fatalf("expected validator.ValidationErrors, got %T", err)
+	}
+
+	want := map[string]string{
+		"scene_id": "长度必须是20",
+		"name":     "长度必须至少为8",
+		"title":    "长度不能超过3",
+		"channel":  "必须是[a b c]中的一个",
+	}
+
+	trans := Trans()
+	for _, fe := range errs {
+		got := translate(trans, fe)
+		sub, ok := want[fe.Field()]
+		if !ok {
+			continue
+		}
+		if !strings.Contains(got, sub) {
+			t.Fatalf("translate(%s/%s) = %q, want contains %q", fe.Field(), fe.Tag(), got, sub)
+		}
+		if strings.Contains(got, fe.Field()+" "+fe.Tag()) {
+			t.Fatalf("translate(%s/%s) fell back to 'field tag': %q", fe.Field(), fe.Tag(), got)
+		}
+	}
+}
+
 func TestTranslateFallsBackWithoutPanic(t *testing.T) {
 	resetGlobalStateForTest(t)
 	if err := New(); err != nil {

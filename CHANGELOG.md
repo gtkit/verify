@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-05-28
+
+### Fixed
+- 修复 `len`、`min`、`max`、`oneof`、`eq`、`ne`、`gt`、`lt`、`gte`、`lte` 等带参数内置 tag 翻译失败、退化成 `字段 tag`(如 `SceneID len`)的问题; 翻译路径改用 `validator.FieldError.Translate`, 正确触发 zh 包注册的 `customTransFunc`。
+
 ## [1.2.0] - 2026-05-28
 
 ### Added

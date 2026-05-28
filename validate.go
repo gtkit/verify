@@ -223,7 +223,29 @@ func Translate(trans ut.Translator, fe validator.FieldError) string {
 
 func translate(trans ut.Translator, fe validator.FieldError) string {
 	if trans != nil {
-		if msg, err := trans.T(fe.Tag(), fe.Field()); err == nil {
+		// fe.Translate 会优先调用 RegisterTranslation 注册过的 customTransFunc,
+		// 这对 len/min/max/oneof 等"翻译表里没有直接以 tag 命名的 key"的
+		// 带参数内置 tag 是必要的: 它们的中文消息靠 customTransFunc 从
+		// len-string/len-number/... 等子 key 拼装。
+		// 未注册时 validator 内部回退到 fe.Error()(英文 Key:'...' 长串),
+		// 视作未翻译, 再退到下方的 field+tag 兜底。
+		if msg := fe.Translate(trans); msg != "" && msg != fe.Error() {
+			return msg
+		}
+	}
+	if field := fe.Field(); field != "" {
+		return field + " " + fe.Tag()
+	}
+	return fe.Tag()
+}
+
+// simpleTransFunc 作为 customTransFunc 注册给用户自定义 tag(经
+// [SelfRegisterTranslation] / [WithTranslation] / [AddValidationTranslation]),
+// 走 ut.T(tag, field) 简单替换。不直接调 translate, 以避免 translate 顶层
+// 调用 fe.Translate 时回到此处造成无限递归。
+func simpleTransFunc(ut ut.Translator, fe validator.FieldError) string {
+	if ut != nil {
+		if msg, err := ut.T(fe.Tag(), fe.Field()); err == nil {
 			return msg
 		}
 	}
@@ -277,7 +299,7 @@ func addValidationTranslationLocked(v *validator.Validate, trans ut.Translator, 
 		method,
 		trans,
 		registerTranslator(method, info),
-		translate,
+		simpleTransFunc,
 	)
 }
 
