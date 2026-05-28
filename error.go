@@ -26,7 +26,7 @@ func FieldErr(field string, err error, msg ...string) error {
 	if !errors.As(err, &errs) {
 		return err
 	}
-	v, ok := firstSortedMessage(RemoveTopStruct(errs.Translate(Trans())))
+	v, ok := firstSortedMessage(translateValidationErrors(errs))
 	if !ok {
 		return nil
 	}
@@ -46,7 +46,7 @@ func StructErr(err error, msg ...string) error {
 	if !errors.As(err, &errs) {
 		return err
 	}
-	v, ok := firstSortedMessage(RemoveTopStruct(errs.Translate(Trans())))
+	v, ok := firstSortedMessage(translateValidationErrors(errs))
 	if !ok {
 		return nil
 	}
@@ -75,7 +75,7 @@ func MapErr(err map[string]any, msg ...string) error {
 		if !ok {
 			continue
 		}
-		maperr := GetMapError(errs.Translate(Trans()))
+		maperr := GetMapError(translateValidationErrors(errs))
 		if maperr == "" {
 			continue
 		}
@@ -86,6 +86,29 @@ func MapErr(err map[string]any, msg ...string) error {
 	}
 
 	return nil
+}
+
+func translateValidationErrors(errs validator.ValidationErrors) map[string]string {
+	fields := make(map[string]string, len(errs))
+	trans := Trans()
+	for _, fe := range errs {
+		fields[fe.Namespace()] = translateFieldError(trans, fe)
+	}
+	return RemoveTopStruct(fields)
+}
+
+func translateFieldError(trans interface {
+	T(key any, params ...string) (string, error)
+}, fe validator.FieldError) string {
+	if trans != nil {
+		if msg, err := trans.T(fe.Tag(), fe.Field()); err == nil {
+			return msg
+		}
+	}
+	if field := fe.Field(); field != "" {
+		return field + " " + fe.Tag()
+	}
+	return fe.Tag()
 }
 
 func firstSortedMessage(fields map[string]string) (string, bool) {

@@ -2,52 +2,93 @@ package verify
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-playground/validator/v10"
 )
 
 // Field 根据 tag 校验单个字段, 校验失败时返回错误。
 func Field(field any, tag string) error {
-	return Validate().Var(field, tag)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.Var(field, tag)
 }
 
 func FieldCtx(ctx context.Context, field any, tag string) error {
-	return Validate().VarCtx(ctx, field, tag)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.VarCtx(ctx, field, tag)
 }
 
 // WithValue 根据 tag 比较两个字段, 校验失败时返回错误。
 func WithValue(field1, field2 any, tag string) error {
-	return Validate().VarWithValue(field1, field2, tag)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.VarWithValue(field1, field2, tag)
 }
 
 func WithValueCtx(ctx context.Context, field1, field2 any, tag string) error {
-	return Validate().VarWithValueCtx(ctx, field1, field2, tag)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.VarWithValueCtx(ctx, field1, field2, tag)
 }
 
 // Struct 根据结构体字段的 tag 规则进行校验。
 func Struct(s any) error {
-	return Validate().Struct(s)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.Struct(s)
 }
 
 func StructCtx(ctx context.Context, s any) error {
-	return Validate().StructCtx(ctx, s)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.StructCtx(ctx, s)
 }
 
 func StructFiltered(s any, fn validator.FilterFunc) error {
-	return Validate().StructFiltered(s, fn)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.StructFiltered(s, fn)
 }
 
 func StructFilteredCtx(ctx context.Context, s any, fn validator.FilterFunc) error {
-	return Validate().StructFilteredCtx(ctx, s, fn)
+	v, err := validatorOrError()
+	if err != nil {
+		return err
+	}
+	return v.StructFilteredCtx(ctx, s, fn)
 }
 
 // Map 根据规则校验 map, 返回一个 err 的 map。
 func Map(m map[string]any, rules map[string]any) map[string]any {
-	return Validate().ValidateMap(m, rules)
+	v := Validate()
+	if v == nil {
+		return nil
+	}
+	return v.ValidateMap(m, rules)
 }
 
 func MapCtx(ctx context.Context, m map[string]any, rules map[string]any) map[string]any {
-	return Validate().ValidateMapCtx(ctx, m, rules)
+	v := Validate()
+	if v == nil {
+		return nil
+	}
+	return v.ValidateMapCtx(ctx, m, rules)
 }
 
 type TranslationFunc func() Translation
@@ -71,12 +112,13 @@ func RegisterValidation(fns ...ValidationFunc) {
 	}
 }
 
-func RegisterTranslation(fns ...TranslationFunc) {
+func RegisterTranslation(fns ...TranslationFunc) error {
+	errs := make([]error, 0, len(fns))
 	for _, fn := range fns {
 		v := fn()
 		if err := SelfRegisterTranslation(v.Method, v.Info, v.Func); err != nil {
-			panic(err)
+			errs = append(errs, err)
 		}
 	}
-
+	return errors.Join(errs...)
 }

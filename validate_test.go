@@ -8,7 +8,10 @@ import (
 )
 
 func TestTranslateFallsBackWithoutPanic(t *testing.T) {
-	New()
+	resetGlobalStateForTest(t)
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	if err := Validate().RegisterValidation("custom_missing_translation", func(fl validator.FieldLevel) bool {
 		return false
@@ -28,10 +31,16 @@ func TestTranslateFallsBackWithoutPanic(t *testing.T) {
 	if !strings.Contains(msg.Error(), "custom_missing_translation") {
 		t.Fatalf("expected fallback message to mention tag, got %q", msg.Error())
 	}
+	if strings.Contains(msg.Error(), "Key:") || strings.Contains(msg.Error(), "payload") {
+		t.Fatalf("fallback message must not leak validator namespace, got %q", msg.Error())
+	}
 }
 
 func TestBindingTagIsUsed(t *testing.T) {
-	New()
+	resetGlobalStateForTest(t)
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	type payload struct {
 		Name string `binding:"required"`
@@ -43,7 +52,10 @@ func TestBindingTagIsUsed(t *testing.T) {
 }
 
 func TestMapErrDeterministicOrder(t *testing.T) {
-	New()
+	resetGlobalStateForTest(t)
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	result := map[string]any{
 		"z_field": validator.ValidationErrors{

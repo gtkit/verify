@@ -27,12 +27,29 @@ var (
 	}
 )
 
-func init() {
-	New()
+func initError() error {
+	if err := initDefaultValidator(); err != nil {
+		return err
+	}
+	if globalState.validate == nil {
+		return fmt.Errorf("validator 初始化失败")
+	}
+	return nil
 }
 
-func New() {
-	_ = initDefaultValidator()
+func validatorOrError() (*validator.Validate, error) {
+	if err := initError(); err != nil {
+		return nil, err
+	}
+	return globalState.validate, nil
+}
+
+// New initializes verify with Gin's shared binding validator.
+//
+// Call New during application startup before any Gin ShouldBind* call, so
+// validator field-name caches use the external json field names.
+func New() error {
+	return initDefaultValidator()
 }
 
 // 初始化验证并翻译
@@ -58,6 +75,7 @@ func initDefaultValidator() error {
 }
 
 func initValidator(v *validator.Validate) (ut.Translator, error) {
+	// 与 Gin 默认校验 tag 保持一致; 显式设置避免外部替换默认值后语义漂移。
 	v.SetTagName("binding")
 	// 注册一个获取json tag的自定义方法
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -176,14 +194,7 @@ func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFu
 
 // Translate 自定义字段的翻译方法
 func Translate(trans ut.Translator, fe validator.FieldError) string {
-	msg, err := trans.T(fe.Tag(), fe.Field())
-	if err != nil {
-		if feErr, ok := fe.(error); ok {
-			return feErr.Error()
-		}
-		return fe.Tag()
-	}
-	return msg
+	return translateFieldError(trans, fe)
 }
 
 // SelfRegisterTranslation 翻译自定义校验方法
@@ -195,11 +206,19 @@ func SelfRegisterTranslation(method string, info string, myFunc validator.Func) 
 
 	globalState.regMu.Lock()
 	defer globalState.regMu.Unlock()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("register validation %q: %v", method, r)
+		}
+	}()
 
 	if err = v.RegisterValidation(method, myFunc); err != nil {
-		return
+		return fmt.Errorf("register validation %q: %w", method, err)
 	}
-	return addValidationTranslationLocked(v, globalState.trans, method, info)
+	if err = addValidationTranslationLocked(v, globalState.trans, method, info); err != nil {
+		return fmt.Errorf("register translation %q: %w", method, err)
+	}
+	return nil
 }
 
 // AddValidationTranslation 完善未有的验证方法的翻译

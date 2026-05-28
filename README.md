@@ -4,7 +4,21 @@ https://github.com/go-playground/validator
 ```
 #### 用于gin框架参数验证翻译
 `verify` 直接使用 Gin 的 `binding.Validator.Engine()` 作为底层 `*validator.Validate`。
-在 `main/init` 阶段直接注册自定义校验即可, 不需要额外初始化或绑定步骤。
+请在应用启动阶段、任何 `ShouldBind*` 调用之前显式初始化一次, 确保 Gin 的字段名缓存使用对外字段名。
+
+```
+func main() {
+	if err := verify.New(); err != nil {
+		log.Fatal(err)
+	}
+
+	r := gin.New()
+	// register routes...
+	_ = r.Run()
+}
+```
+
+请求 DTO 中参与 `binding` 校验的字段建议配置稳定的 `json` tag。不要对 `json:"-"` 字段依赖自动翻译错误名; 这类字段不属于对外 JSON 契约, 如需校验请自行处理错误消息。
 
 ```
 type SignUpParam struct {
@@ -33,17 +47,6 @@ func SignUp(c *gin.Context) {
 	var s SignUpParam
 
 	if err := c.ShouldBindQuery(&s); err != nil {
-		// 获取validator.ValidationErrors类型的errors
-		errs, ok := err.(validator.ValidationErrors)
-		if !ok {
-			// 非validator.ValidationErrors类型错误直接返回
-			c.JSON(http.StatusOK, gin.H{
-			 	"msg": err.Error(),
-		     })
-			
-			return
-		}
-
 		resp.Error(c, verify.StructErr(err))
 		return
 

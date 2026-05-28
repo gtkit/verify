@@ -16,7 +16,9 @@ type safetyPayload struct {
 // 校验通过的字段错误经过 FieldErr 后, Message() 必须含字段名和翻译后的提示,
 // 不能再退化成固定的 "字段验证错误" / "请求参数错误" 之类无信息文案。
 func TestFieldErr_MessageCarriesFieldHint(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	err := Field("not-a-number", "required,numeric")
 	if err == nil {
@@ -51,7 +53,9 @@ func TestFieldErr_MessageCarriesFieldHint(t *testing.T) {
 
 // 自定义业务文案应覆盖 Message(), 但字段提示仍要进入 Error() 供日志排障。
 func TestFieldErr_UserMsgOverridesMessageButKeepsErrorContext(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	err := Field("not-a-number", "required,numeric")
 	if err == nil {
@@ -75,7 +79,9 @@ func TestFieldErr_UserMsgOverridesMessageButKeepsErrorContext(t *testing.T) {
 // 防止把数据库错误/panic 包装成 StatusValidateParams 误导客户端,
 // 也防止 Message() 暴露 "非ValidationErrors类型错误" 内部细节。
 func TestFieldErr_NonValidationErrorPassthrough(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	raw := errors.New("db connection refused")
 	out := FieldErr("any", raw)
@@ -90,7 +96,9 @@ func TestFieldErr_NonValidationErrorPassthrough(t *testing.T) {
 
 // StructErr: Message() 应该是翻译后的字段提示, 不应是固定文案。
 func TestStructErr_MessageCarriesFieldHint(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	err := Struct(safetyPayload{Name: "a", Email: "bad"})
 	if err == nil {
@@ -120,7 +128,9 @@ func TestStructErr_MessageCarriesFieldHint(t *testing.T) {
 
 // StructErr 非 validation 错误透传。
 func TestStructErr_NonValidationErrorPassthrough(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	raw := errors.New("internal panic recovered")
 	out := StructErr(raw)
@@ -131,7 +141,9 @@ func TestStructErr_NonValidationErrorPassthrough(t *testing.T) {
 
 // MapErr: Message() 应该形如 "key 翻译后的提示"。
 func TestMapErr_MessageCarriesKeyAndHint(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	data := map[string]any{"name": "ab"}
 	rules := map[string]any{"name": "required,min=8"}
@@ -156,7 +168,9 @@ func TestMapErr_MessageCarriesKeyAndHint(t *testing.T) {
 
 // MapErr 在 result 含非 ValidationErrors 值时不应 panic, 也不应泄露内部细节。
 func TestMapErr_SkipsNonValidationEntries(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	// 模拟一个错误的 result 项 (实际不会发生, 但保护代码健壮性)
 	result := map[string]any{"weird": "not validation errors"}
@@ -168,7 +182,9 @@ func TestMapErr_SkipsNonValidationEntries(t *testing.T) {
 
 // nil/空输入路径。
 func TestErrFuncs_NilInputs(t *testing.T) {
-	New()
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 	if err := FieldErr("x", nil); err != nil {
 		t.Fatalf("FieldErr(nil) should be nil, got %v", err)
 	}
