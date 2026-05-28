@@ -31,12 +31,30 @@ func validatorOrError() (*validator.Validate, error) {
 	return globalState.validate, nil
 }
 
-// New initializes verify with Gin's shared binding validator.
+// New initializes verify with Gin's shared binding validator and applies opts.
 //
 // Call New during application startup before any Gin ShouldBind* call, so
-// validator field-name caches use the external json field names.
-func New() error {
-	return initDefaultValidator()
+// validator field-name caches use the external json field names. Options and
+// registration helpers must also run before any validation; validator/v10 does
+// not make registration safe while validation is running.
+func New(opts ...Option) error {
+	if err := initDefaultValidator(); err != nil {
+		return err
+	}
+	if len(opts) == 0 {
+		return nil
+	}
+	globalState.regMu.Lock()
+	defer globalState.regMu.Unlock()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if err := opt.apply(globalState.validate, globalState.trans); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // 初始化验证并翻译
@@ -81,7 +99,8 @@ func initValidator(v *validator.Validate) (ut.Translator, error) {
 // 这是选择性加入行为，以保持与之前行为的向后兼容性
 // 到能够直接对结构体字段应用结构体级验证。
 //
-// 建议在应用启动阶段、任何校验发生前调用。
+// 仅应在应用启动阶段、任何校验发生前调用。新代码优先使用
+// [EnableRequiredStructValidation] 作为 [New] 的 Functional Option。
 func WithRequiredStructEnabled() {
 	if v := Validate(); v != nil {
 		globalState.regMu.Lock()
@@ -93,7 +112,8 @@ func WithRequiredStructEnabled() {
 // WithPrivateFieldValidation 通过使用“不安全”包激活对未导出字段的验证。
 //
 // 通过选择此功能，您承认您了解风险并接受任何当前或未来的风险
-// 使用此功能的后果。建议在应用启动阶段、任何校验发生前调用。
+// 使用此功能的后果。仅应在应用启动阶段、任何校验发生前调用。新代码
+// 优先使用 [EnablePrivateFieldValidation] 作为 [New] 的 Functional Option。
 func WithPrivateFieldValidation() {
 	if v := Validate(); v != nil {
 		globalState.regMu.Lock()
@@ -170,7 +190,11 @@ func Translate(trans ut.Translator, fe validator.FieldError) string {
 	return fe.Tag()
 }
 
-// SelfRegisterTranslation 翻译自定义校验方法
+// SelfRegisterTranslation 翻译自定义校验方法。
+//
+// 仅应在应用启动阶段、任何校验发生前调用。该函数只串行化 verify 包内
+// 的注册写操作, 不提供注册与 Gin/validator 校验并发执行时的安全保证。
+// 新代码优先使用 [WithTranslation] 作为 [New] 的 Functional Option。
 func SelfRegisterTranslation(method string, info string, myFunc validator.Func) (err error) {
 	v := Validate()
 	if v == nil {
@@ -194,7 +218,11 @@ func SelfRegisterTranslation(method string, info string, myFunc validator.Func) 
 	return nil
 }
 
-// AddValidationTranslation 完善未有的验证方法的翻译
+// AddValidationTranslation 完善未有的验证方法的翻译。
+//
+// 仅应在应用启动阶段、任何校验发生前调用。该函数只串行化 verify 包内
+// 的注册写操作, 不提供注册与 Gin/validator 校验并发执行时的安全保证。
+// 新代码优先使用 [WithValidationTranslation] 作为 [New] 的 Functional Option。
 func AddValidationTranslation(method, info string) error {
 	v := Validate()
 	if v == nil {
@@ -216,7 +244,11 @@ func addValidationTranslationLocked(v *validator.Validate, trans ut.Translator, 
 	)
 }
 
-// RegisterStructValidation 自定义结构体验证方法
+// RegisterStructValidation 自定义结构体验证方法。
+//
+// 仅应在应用启动阶段、任何校验发生前调用。该函数只串行化 verify 包内
+// 的注册写操作, 不提供注册与 Gin/validator 校验并发执行时的安全保证。
+// 新代码优先使用 [WithStructValidation] 作为 [New] 的 Functional Option。
 func RegisterStructValidation(sl validator.StructLevelFunc, types ...any) {
 	v := Validate()
 	if v == nil {

@@ -8,7 +8,11 @@ https://github.com/go-playground/validator
 
 ```
 func main() {
-	if err := verify.New(); err != nil {
+	if err := verify.New(
+		verify.WithTranslation("checkDate", "必须要晚于当前日期", CustomFunc),
+		verify.WithTranslation("checkName", "名字格式不对", CheckName),
+		verify.WithStructValidation(SignUpParamStructLevelValidation, SignUpParam{}),
+	); err != nil {
 		log.Fatal(err)
 	}
 
@@ -17,6 +21,8 @@ func main() {
 	_ = r.Run()
 }
 ```
+
+自定义校验、翻译和 validator 配置必须在应用启动阶段完成, 且必须早于任何 Gin `ShouldBind*` 或 `verify.*` 校验调用。`validator/v10` 的注册方法不能与校验并发执行; 请不要在 handler 中注册规则。
 
 请求 DTO 中参与 `binding` 校验的字段建议配置稳定的 `json` tag。不要对 `json:"-"` 字段依赖自动翻译错误名; 这类字段不属于对外 JSON 契约, 如需校验请自行处理错误消息。
 
@@ -30,20 +36,22 @@ type SignUpParam struct {
 	Date       string `json:"date" form:"date" binding:"required,datetime=2006-01-02,checkDate"`
 }
 
+func main() {
+	if err := verify.New(
+		verify.WithTranslation("checkDate", "必须要晚于当前日期", CustomFunc),
+		verify.WithTranslation("checkName", "名字格式不对", CheckName),
+		verify.WithStructValidation(SignUpParamStructLevelValidation, SignUpParam{}),
+	); err != nil {
+		log.Fatal(err)
+	}
+
+	r := gin.New()
+	r.GET("/signup", SignUp)
+	_ = r.Run()
+}
+
 // 校验方式使用 demo
 func SignUp(c *gin.Context) {
-	// 为SignUpParam注册自定义校验方法
-	verify.RegisterStructValidation(SignUpParamStructLevelValidation, SignUpParam{})
-
-        // 注册自定义字段级别校验方法
-	if err := verify.SelfRegisterTranslation("checkDate", "必须要晚于当前日期", CustomFunc); err != nil {
-		panic(err)
-	}
-
-	if err := verify.SelfRegisterTranslation("checkName", "名字格式不对", CheckName); err != nil {
-		panic(err)
-	}
-
 	var s SignUpParam
 
 	if err := c.ShouldBindQuery(&s); err != nil {
@@ -151,7 +159,9 @@ if err := verify.MapErr(errs); err != nil {
 }
 
 
-// 集合嵌套验证
+// 集合嵌套验证。
+// MapErr 仅展开顶层 map 的 ValidationErrors; 嵌套规则返回的 map[string]any
+// 需要调用方自行 walk 后再决定如何展示错误。
 data := map[string]any {
         "name": "ddkalsj",
         "email": "djsta@as.com",
@@ -199,12 +209,24 @@ if err := verify.MapErr(errs); err != nil {
 
 ### 错误处理
 ```
-ErrorInfo | FieldError 处理变量字段错误
+FieldErr 处理变量字段错误
 StructErr 处理结构体字段错误
 MapErr 处理map字段错误
 
 返回 goerr.Error 类型
 github.com/gtkit/goerr
+```
+### 启动期配置
+```
+New 初始化 Gin 共享 validator, 可接收 Functional Options:
+
+WithTranslation 注册自定义字段校验和翻译
+WithValidationTranslation 注册已有校验 tag 的翻译
+WithStructValidation 注册结构体级校验
+EnableRequiredStructValidation 启用 required 结构体验证
+EnablePrivateFieldValidation 启用未导出字段验证
+
+这些 Option 仅用于应用启动阶段, 必须早于任何 Gin ShouldBind* 或 verify.* 校验调用。
 ```
 ### 验证器
 ```
