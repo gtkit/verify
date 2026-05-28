@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh"
 	ut "github.com/go-playground/universal-translator"
@@ -26,6 +27,10 @@ var (
 	}
 )
 
+func init() {
+	New()
+}
+
 func New() {
 	_ = initDefaultValidator()
 }
@@ -33,18 +38,14 @@ func New() {
 // 初始化验证并翻译
 func initDefaultValidator() error {
 	globalState.once.Do(func() {
-		v := validator.New()
-		v.SetTagName("binding")
-		// 注册一个获取json tag的自定义方法
-		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-			if name == "-" {
-				return ""
-			}
-			return name
-		})
+		engine := binding.Validator.Engine()
+		v, ok := engine.(*validator.Validate)
+		if !ok {
+			globalState.initErr = fmt.Errorf("gin binding validator engine %T is not *validator.Validate", engine)
+			return
+		}
 
-		trans, err := getTrans("zh", v)
+		trans, err := initValidator(v)
 		if err != nil {
 			globalState.initErr = err
 			return
@@ -54,6 +55,20 @@ func initDefaultValidator() error {
 		globalState.trans = trans
 	})
 	return globalState.initErr
+}
+
+func initValidator(v *validator.Validate) (ut.Translator, error) {
+	v.SetTagName("binding")
+	// 注册一个获取json tag的自定义方法
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
+
+	return getTrans("zh", v)
 }
 
 // WithRequiredStructEnabled 在非指针结构上启用所需标记，而不是忽略。

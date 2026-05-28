@@ -2,3 +2,23 @@
 .vscode/
 .DS_Store
 __MACOSX/
+# Harness: 本地工具与 Agent 运行产物
+.openspec-auto-backup/
+.openspec-auto/
+.Ds_Store
+*.log
+findings.md
+progress.md
+task_plan.md
+.harness/error-journal.md
+.claude/
+.codex/
+.agents/
+openspec/
+AGENTS.md
+CLAUDE.md
+tools/
+.harness/VERSION
+.harness/
+.learnings/
+coverage.out

@@ -3,6 +3,9 @@
 https://github.com/go-playground/validator
 ```
 #### 用于gin框架参数验证翻译
+`verify` 直接使用 Gin 的 `binding.Validator.Engine()` 作为底层 `*validator.Validate`。
+在 `main/init` 阶段直接注册自定义校验即可, 不需要额外初始化或绑定步骤。
+
 ```
 type SignUpParam struct {
 	Age        uint8  `json:"age" form:"age" binding:"gte=1,lte=130"`

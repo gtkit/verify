@@ -67,7 +67,7 @@ type Validation struct {
 func RegisterValidation(fns ...ValidationFunc) {
 	for _, fn := range fns {
 		v := fn()
-		RegisterStructValidation(v.Func, v.Type)
+		RegisterStructValidation(v.Func, v.Type...)
 	}
 }
 
