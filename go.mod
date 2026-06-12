@@ -7,7 +7,7 @@ require (
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.30.3
-	github.com/gtkit/goerr v1.2.6
+	github.com/gtkit/goerr v1.2.7
 )
 
 require (
@@ -30,8 +30,8 @@ require (
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
-	golang.org/x/arch v0.25.0 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.1 // indirect
+	golang.org/x/arch v0.26.0 // indirect
 	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
