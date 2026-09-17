@@ -85,7 +85,7 @@ func initValidator(v *validator.Validate) (ut.Translator, error) {
 	v.SetTagName("binding")
 	// 注册一个获取json tag的自定义方法
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		name, _, _ := strings.Cut(fld.Tag.Get("json"), ",")
 		if name == "-" {
 			return ""
 		}

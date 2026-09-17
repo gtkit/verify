@@ -31,7 +31,7 @@ func FieldErr(field string, err error, msg ...string) error {
 		return nil
 	}
 	if len(msg) > 0 && msg[0] != "" {
-		return goerr.New(goerr.Err(field+" "+v), goerr.StatusValidateParams(), msg[0])
+		return goerr.New(errors.New(field+" "+v), goerr.StatusValidateParams(), msg[0])
 	}
 	return goerr.Newf(goerr.StatusValidateParams(), "%s %s", field, v)
 }
@@ -51,7 +51,7 @@ func StructErr(err error, msg ...string) error {
 		return nil
 	}
 	if len(msg) > 0 && msg[0] != "" {
-		return goerr.New(goerr.Err(v), goerr.StatusValidateParams(), msg[0])
+		return goerr.New(errors.New(v), goerr.StatusValidateParams(), msg[0])
 	}
 	return goerr.New(nil, goerr.StatusValidateParams(), v)
 }
@@ -80,7 +80,7 @@ func MapErr(err map[string]any, msg ...string) error {
 			continue
 		}
 		if len(msg) > 0 && msg[0] != "" {
-			return goerr.New(goerr.Err(k+" "+maperr), goerr.StatusValidateParams(), msg[0])
+			return goerr.New(errors.New(k+" "+maperr), goerr.StatusValidateParams(), msg[0])
 		}
 		return goerr.Newf(goerr.StatusValidateParams(), "%s %s", k, maperr)
 	}
