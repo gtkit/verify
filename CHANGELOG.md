@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-09-17
+
 ### Changed
 - 依赖 `github.com/gtkit/goerr` 升级到 v1.4.0。该版本删除了 `goerr.Err`, 本包内部错误构造改用标准库 `errors.New`; `FieldErr`/`StructErr`/`MapErr` 的返回类型、业务状态码与 `Error()`/`Message()` 文本均不变。
 - 依赖 `github.com/go-playground/validator/v10` 升级到 v10.30.4。
