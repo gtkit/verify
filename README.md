@@ -209,12 +209,70 @@ if err := verify.MapErr(errs); err != nil {
 
 ### 错误处理
 ```
-FieldErr 处理变量字段错误
-StructErr 处理结构体字段错误
-MapErr 处理map字段错误
+FieldErr 处理变量字段错误（返回第一个错误）
+StructErr 处理结构体字段错误（返回第一个错误，含字段名前缀）
+MapErr 处理map字段错误（返回第一个错误）
+
+AllStructErr 处理结构体字段错误（返回所有字段错误聚合）
+AllMapErr 处理map字段错误（支持嵌套map，返回所有错误聚合）
+StructFieldErrors 提取结构体校验错误的结构化字段详情
 
 返回 goerr.Error 类型
 github.com/gtkit/goerr
+```
+
+#### 多字段错误处理
+```go
+// 获取所有字段错误（推荐用于前端一次性展示）
+if err := c.ShouldBindJSON(&req); err != nil {
+    // 方式1: 使用 AllStructErr 返回聚合错误
+    resp.Error(c, verify.AllStructErr(err))
+    
+    // 方式2: 使用 StructFieldErrors 获取结构化错误详情
+    if fieldErrs := verify.StructFieldErrors(err); len(fieldErrs) > 0 {
+        // 构建详细错误响应
+        details := make([]map[string]string, 0, len(fieldErrs))
+        for _, fe := range fieldErrs {
+            details = append(details, map[string]string{
+                "field":   fe.Field,
+                "message": fe.Message,
+            })
+        }
+        c.JSON(http.StatusUnprocessableEntity, gin.H{
+            "code":    goerr.StatusValidateParams().Code(),
+            "message": "请求参数校验失败",
+            "errors":  details,
+        })
+        return
+    }
+}
+
+// FieldErrors 类型方法
+fieldErrs := verify.StructFieldErrors(err)
+fmt.Println(fieldErrs.Error())        // "name 长度必须至少为2; email 必须是一个有效的邮箱"
+fmt.Println(fieldErrs.First())        // &FieldError{Field: "email", Message: "..."}
+fmt.Println(fieldErrs.Fields())       // ["email", "name"]
+```
+
+#### 嵌套 Map 错误处理
+```go
+data := map[string]any{
+    "user": map[string]any{
+        "name":  "ab",
+        "email": "invalid",
+    },
+}
+rules := map[string]any{
+    "user": map[string]any{
+        "name":  "required,min=8",
+        "email": "required,email",
+    },
+}
+errs := verify.Map(data, rules)
+// AllMapErr 递归处理嵌套 map，返回 "user.name 长度必须至少为8; user.email 必须是一个有效的邮箱"
+if err := verify.AllMapErr(errs); err != nil {
+    fmt.Println(err.Error())
+}
 ```
 ### 启动期配置
 ```

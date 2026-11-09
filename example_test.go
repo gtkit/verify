@@ -21,7 +21,7 @@ func ExampleNew() {
 	}
 
 	fmt.Println(verify.StructErr(verify.Struct(User{Name: "alice"})))
-	// Output: name必须是 tom
+	// Output: name name必须是 tom
 }
 
 func ExampleStructErr() {
@@ -30,5 +30,31 @@ func ExampleStructErr() {
 	}
 
 	fmt.Println(verify.StructErr(verify.Struct(User{Email: "bad"})))
-	// Output: email必须是一个有效的邮箱
+	// Output: email email必须是一个有效的邮箱
+}
+
+func ExampleAllStructErr() {
+	type User struct {
+		Name  string `json:"name" binding:"required,min=2"`
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	err := verify.AllStructErr(verify.Struct(User{Name: "a", Email: "bad"}))
+	fmt.Println(err)
+	// Output: email email必须是一个有效的邮箱; name name长度必须至少为2个字符
+}
+
+func ExampleStructFieldErrors() {
+	type User struct {
+		Name  string `json:"name" binding:"required,min=2"`
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	fieldErrs := verify.StructFieldErrors(verify.Struct(User{Name: "a", Email: "bad"}))
+	for _, fe := range fieldErrs {
+		fmt.Printf("%s: %s\n", fe.Field, fe.Message)
+	}
+	// Output:
+	// email: email必须是一个有效的邮箱
+	// name: name长度必须至少为2个字符
 }

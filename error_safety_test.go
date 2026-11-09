@@ -197,4 +197,200 @@ func TestErrFuncs_NilInputs(t *testing.T) {
 	if err := MapErr(map[string]any{}); err != nil {
 		t.Fatalf("MapErr(empty) should be nil, got %v", err)
 	}
+	if err := AllStructErr(nil); err != nil {
+		t.Fatalf("AllStructErr(nil) should be nil, got %v", err)
+	}
+	if err := AllMapErr(nil); err != nil {
+		t.Fatalf("AllMapErr(nil) should be nil, got %v", err)
+	}
+	if errs := StructFieldErrors(nil); errs != nil {
+		t.Fatalf("StructFieldErrors(nil) should be nil, got %v", errs)
+	}
+}
+
+// StructErr 统一行为测试：Message() 应包含字段名前缀。
+func TestStructErr_MessageIncludesFieldName(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	err := Struct(safetyPayload{Name: "a", Email: "bad"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+
+	out := StructErr(err)
+	item, ok := goerr.AsItem(out)
+	if !ok {
+		t.Fatalf("expected *goerr.Item, got %T", out)
+	}
+
+	msg := item.Message()
+	// 应该包含字段名（email 或 name）
+	if !strings.Contains(msg, "email") && !strings.Contains(msg, "name") {
+		t.Fatalf("Message() should contain field name, got %q", msg)
+	}
+}
+
+// AllStructErr 测试：返回所有字段错误聚合。
+func TestAllStructErr_ReturnsAllFieldErrors(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	err := Struct(safetyPayload{Name: "a", Email: "bad"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+
+	out := AllStructErr(err)
+	if out == nil {
+		t.Fatal("expected non-nil error")
+	}
+
+	item, ok := goerr.AsItem(out)
+	if !ok {
+		t.Fatalf("expected *goerr.Item, got %T", out)
+	}
+
+	msg := item.Message()
+	// 应该包含两个字段错误
+	if !strings.Contains(msg, "name") || !strings.Contains(msg, "email") {
+		t.Fatalf("Message() should contain both field errors, got %q", msg)
+	}
+
+	// 使用 StructFieldErrors 获取结构化错误
+	fieldErrs := StructFieldErrors(err)
+	if len(fieldErrs) != 2 {
+		t.Fatalf("expected 2 field errors, got %d", len(fieldErrs))
+	}
+}
+
+// StructFieldErrors 测试：提取结构化字段错误。
+func TestStructFieldErrors_ReturnsStructuredErrors(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	err := Struct(safetyPayload{Name: "a", Email: "bad"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+
+	fieldErrs := StructFieldErrors(err)
+	if len(fieldErrs) == 0 {
+		t.Fatal("expected non-empty FieldErrors")
+	}
+
+	// 检查字段名和消息
+	foundName := false
+	foundEmail := false
+	for _, fe := range fieldErrs {
+		if fe.Field == "name" {
+			foundName = true
+			if fe.Message == "" {
+				t.Fatal("name field error message should not be empty")
+			}
+		}
+		if fe.Field == "email" {
+			foundEmail = true
+			if fe.Message == "" {
+				t.Fatal("email field error message should not be empty")
+			}
+		}
+	}
+	if !foundName || !foundEmail {
+		t.Fatalf("expected both name and email field errors, got %+v", fieldErrs)
+	}
+}
+
+// FieldErrors 类型方法测试。
+func TestFieldErrors_Methods(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	err := Struct(safetyPayload{Name: "a", Email: "bad"})
+	fieldErrs := StructFieldErrors(err)
+
+	// Test First()
+	first := fieldErrs.First()
+	if first == nil {
+		t.Fatal("First() should not return nil for non-empty FieldErrors")
+	}
+	if first.Field == "" {
+		t.Fatal("First().Field should not be empty")
+	}
+
+	// Test Fields()
+	fields := fieldErrs.Fields()
+	if len(fields) != len(fieldErrs) {
+		t.Fatalf("Fields() length mismatch: got %d, want %d", len(fields), len(fieldErrs))
+	}
+
+	// Test Error()
+	errMsg := fieldErrs.Error()
+	if errMsg == "" {
+		t.Fatal("Error() should not be empty for non-empty FieldErrors")
+	}
+	if !strings.Contains(errMsg, ";") && len(fieldErrs) > 1 {
+		t.Fatal("Error() should contain ';' separator for multiple errors")
+	}
+}
+
+// AllMapErr 测试：嵌套 map 错误聚合。
+func TestAllMapErr_NestedMapErrors(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	data := map[string]any{
+		"name":  "ab",
+		"email": "invalid",
+	}
+	rules := map[string]any{
+		"name":  "required,min=8",
+		"email": "required,email",
+	}
+	result := Map(data, rules)
+
+	out := AllMapErr(result)
+	if out == nil {
+		t.Fatal("expected non-nil error")
+	}
+
+	item, ok := goerr.AsItem(out)
+	if !ok {
+		t.Fatalf("expected *goerr.Item, got %T", out)
+	}
+
+	msg := item.Message()
+	// 应该包含两个字段错误
+	if !strings.Contains(msg, "name") || !strings.Contains(msg, "email") {
+		t.Fatalf("Message() should contain both field errors, got %q", msg)
+	}
+}
+
+// AllStructErr 非 validation 错误透传。
+func TestAllStructErr_NonValidationErrorPassthrough(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	raw := errors.New("internal error")
+	out := AllStructErr(raw)
+	if out != raw {
+		t.Fatalf("expected identity passthrough, got %v", out)
+	}
+}
+
+// AllMapErr 空输入。
+func TestAllMapErr_EmptyInput(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	if err := AllMapErr(map[string]any{}); err != nil {
+		t.Fatalf("AllMapErr(empty) should be nil, got %v", err)
+	}
 }

@@ -2,7 +2,18 @@
 
 遵循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-CN/1.1.0/) 和 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [1.3.0] - 2026-11-09
+
+### Added
+- 新增 `FieldError` 结构体和 `FieldErrors` 类型，支持结构化多字段错误返回。
+- 新增 `AllStructErr(err error, msg ...string) error`，返回包含所有字段错误的聚合错误。
+- 新增 `StructFieldErrors(err error) FieldErrors`，从结构体校验错误中提取所有字段错误详情。
+- 新增 `AllMapErr(err map[string]any, msg ...string) error`，支持嵌套 map 的错误聚合。
+- `FieldErrors` 类型提供 `Error()`、`First()`、`Fields()` 方法，便于构建详细错误响应。
+
+### Changed
+- `StructErr` 行为统一：现在返回的 Message() 包含字段名前缀（如 "email 必须是一个有效的邮箱"），与 `FieldErr` 保持一致。
+- 内部优化 `firstSortedMessage`，新增 `firstSortedFieldMessage` 同时返回字段名和消息，避免重复排序。
 
 ## [1.2.5] - 2026-09-17
 
