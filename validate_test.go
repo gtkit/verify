@@ -132,13 +132,13 @@ func TestTranslateFallsBackWithNilTranslator(t *testing.T) {
 	}
 
 	fe := mustFieldError(t, "payload.a_field", "a_field", "required")
-	if got := Translate(nil, fe); got != "a_field required" {
-		t.Fatalf("Translate(nil) = %q, want %q", got, "a_field required")
+	if got := translate(nil, fe); got != "a_field required" {
+		t.Fatalf("translate(nil) = %q, want %q", got, "a_field required")
 	}
 }
 
 func TestRemoveTopStructKeepsBareFieldName(t *testing.T) {
-	got := RemoveTopStruct(map[string]string{
+	got := removeTopStruct(map[string]string{
 		"name":          "required",
 		"payload.email": "email",
 	})

@@ -164,14 +164,8 @@ func Trans() ut.Translator {
 	return globalState.trans
 }
 
-// RemoveTopStruct 去除字段前面的结构体名称。
-//
-// Deprecated: 请使用 [FieldErr]、[StructErr] 或 [MapErr] 获取对外错误消息。
-// 本函数将在 v2.0.0 移除。
-func RemoveTopStruct(fields map[string]string) map[string]string {
-	return removeTopStruct(fields)
-}
-
+// removeTopStruct 去除字段 namespace 前面的结构体名称, 只留对外字段名。
+// 不含 "." 的裸字段名原样保留。
 func removeTopStruct(fields map[string]string) map[string]string {
 	res := map[string]string{}
 	for field, err := range fields {
@@ -184,41 +178,22 @@ func removeTopStruct(fields map[string]string) map[string]string {
 	return res
 }
 
-// GetMapError 返回按字段名排序后的第一条 map 校验错误消息。
-//
-// Deprecated: 请使用 [MapErr] 获取对外错误消息。本函数将在 v2.0.0 移除。
-func GetMapError(fields map[string]string) string {
-	return getMapError(fields)
-}
-
+// getMapError 返回按字段名排序后的第一条 map 校验错误消息。
 func getMapError(fields map[string]string) string {
 	msg, _ := firstSortedMessage(fields)
 	return msg
 }
 
-// RegisterTranslator 为自定义字段添加翻译功能。
-//
-// Deprecated: 请使用 [New] 的 [WithTranslation] 或
-// [WithValidationTranslation] Functional Option, 在应用启动阶段一次性完成注册。
-// 本函数将在 v2.0.0 移除。
-func RegisterTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
-	return registerTranslator(tag, msg)
-}
-
+// registerTranslator 为自定义字段添加翻译功能。对外注册请走 [New] 的
+// [WithTranslation] / [WithValidationTranslation] Functional Option。
 func registerTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
 	return func(trans ut.Translator) error {
 		return trans.Add(tag, msg, true)
 	}
 }
 
-// Translate 自定义字段的翻译方法。
-//
-// Deprecated: 请使用 [FieldErr]、[StructErr] 或 [MapErr] 获取对外错误消息。
-// 本函数将在 v2.0.0 移除。
-func Translate(trans ut.Translator, fe validator.FieldError) string {
-	return translate(trans, fe)
-}
-
+// translate 翻译单条字段校验错误。对外错误消息请走 [FieldErr]、
+// [StructErr]、[AllStructErr] 或 [MapErr]。
 func translate(trans ut.Translator, fe validator.FieldError) string {
 	if trans != nil {
 		// fe.Translate 会优先调用 RegisterTranslation 注册过的 customTransFunc,

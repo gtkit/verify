@@ -4,6 +4,23 @@
 
 ## [1.3.0] - 2026-11-09
 
+### Removed
+- **破坏性变更**：移除 4 个自 v1.2.0 起标记 deprecated 的导出 helper —— `Translate`、`RegisterTranslator`、`RemoveTopStruct`、`GetMapError`。按 SemVer 这属于 major 变更，本包不发布 v2.0.0，故在 v1.x 内直接移除；升级时按下表改写调用点。
+- 对应的内部实现 `translate`、`registerTranslator`、`removeTopStruct`、`getMapError` 保留为包内私有函数，`FieldErr`/`StructErr`/`AllStructErr`/`MapErr`/`AllMapErr` 的行为与消息文本完全不变。
+- 移除源码与文档中所有 "将在 v2.0.0 移除" 的表述；v1.2.2 条目里"维持 deprecated"的记录作为历史保留。
+
+#### 迁移对照
+
+| 移除的调用 | 改写为 |
+|-----------|-------|
+| `verify.RemoveTopStruct(errs.Translate(verify.Trans()))` 后遍历消息 | `verify.StructFieldErrors(errs)`，遍历 `FieldErrors` 的 `Field` / `Message` |
+| 同上，只需要第一条消息 | `verify.StructErr(errs)`（返回 `*goerr.Item`，`Message()` 即字段名 + 中文提示） |
+| `verify.GetMapError(fields)` | `verify.MapErr(result)` 或 `verify.AllMapErr(result)` |
+| `verify.Translate(trans, fe)` | `verify.FieldErr(field, err)` / `StructErr` / `AllStructErr` |
+| `verify.RegisterTranslator(tag, msg)` | `verify.New(verify.WithTranslation(...))` 或 `verify.WithValidationTranslation(tag, msg)` |
+
+## [1.3.0] - 2026-11-09
+
 ### Added
 - 新增 `FieldError` 结构体和 `FieldErrors` 类型，支持结构化多字段错误返回。
 - 新增 `AllStructErr(err error, msg ...string) error`，返回包含所有字段错误的聚合错误。
