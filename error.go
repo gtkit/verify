@@ -211,49 +211,65 @@ func MapErr(err map[string]any, msg ...string) error {
 	return nil
 }
 
-// AllMapErr 把 map 校验结果翻译为包含所有字段错误的聚合错误。
-func AllMapErr(err map[string]any, msg ...string) error {
-	if len(err) == 0 {
-		return nil
-	}
-
-	var allErrors FieldErrors
+// mapFieldErrors 递归收集 map 校验结果中的所有字段错误。
+//
+// prefix 是外层键路径（顶层为空），用于拼出 "user.email" 这样的对外字段名。
+// 每层都按键名排序，保证同一输入的产出确定。
+func mapFieldErrors(err map[string]any, prefix string) FieldErrors {
 	keys := make([]string, 0, len(err))
 	for key := range err {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
 
+	var out FieldErrors
 	for _, k := range keys {
-		val := err[k]
-		switch v := val.(type) {
+		path := k
+		if prefix != "" {
+			path = prefix + "." + k
+		}
+		switch v := err[k].(type) {
 		case validator.ValidationErrors:
 			fields := translateValidationErrors(v)
-			for field, msg := range fields {
-				allErrors = append(allErrors, FieldError{
-					Field:   k + "." + field,
-					Message: msg,
-				})
+			fieldKeys := make([]string, 0, len(fields))
+			for field := range fields {
+				fieldKeys = append(fieldKeys, field)
+			}
+			slices.Sort(fieldKeys)
+			for _, field := range fieldKeys {
+				// removeTopStruct 已剥掉 namespace 前缀，对 map 校验而言
+				// 翻译后的字段名通常就是 k 本身。相等时直接用 path，否则会
+				// 拼出 "email.email" 这种重复路径；不等说明规则指向更深的
+				// 字段，追加相对路径。
+				name := path
+				if field != k {
+					name = path + "." + field
+				}
+				out = append(out, FieldError{Field: name, Message: fields[field]})
 			}
 		case map[string]any:
-			// 递归处理嵌套 map
-			if nested := AllMapErr(v); nested != nil {
-				// 从嵌套错误中提取字段信息
-				if item, ok := goerr.AsItem(nested); ok {
-					// 解析嵌套错误的 Message() 来构建字段路径
-					allErrors = append(allErrors, FieldError{
-						Field:   k,
-						Message: item.Message(),
-					})
-				}
-			}
+			out = append(out, mapFieldErrors(v, path)...)
 		}
 	}
+	return out
+}
 
-	if len(allErrors) == 0 {
+// AllMapErr 把 map 校验结果翻译为包含所有字段错误的聚合错误。
+//
+// 嵌套 map 的对外字段名按点号拼接（如 "user.email"）。Message() 是所有字段
+// 错误的摘要，形如：
+//
+//	user.email email必须是一个有效的邮箱; user.name name长度必须至少为8个字符
+func AllMapErr(err map[string]any, msg ...string) error {
+	if len(err) == 0 {
 		return nil
 	}
-	summary := allErrors.Error()
+
+	fieldErrors := mapFieldErrors(err, "")
+	if len(fieldErrors) == 0 {
+		return nil
+	}
+	summary := fieldErrors.Error()
 	if len(msg) > 0 && msg[0] != "" {
 		return goerr.New(errors.New(summary), goerr.StatusValidateParams(), msg[0])
 	}

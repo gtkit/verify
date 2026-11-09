@@ -338,36 +338,74 @@ func TestFieldErrors_Methods(t *testing.T) {
 	}
 }
 
-// AllMapErr 测试：嵌套 map 错误聚合。
+// AllMapErr 测试：扁平 map 的多字段错误聚合。
+//
+// 断言精确输出而不是 Contains：此前实现把字段名拼成 "email.email"
+// （k 与翻译后字段名相等时重复拼接），Contains("email") 照样通过，
+// 缺陷因此漏网。
+func TestAllMapErr_FlatMapErrors(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	result := Map(
+		map[string]any{"name": "ab", "email": "invalid"},
+		map[string]any{"name": "required,min=8", "email": "required,email"},
+	)
+
+	item, ok := goerr.AsItem(AllMapErr(result))
+	if !ok {
+		t.Fatalf("expected *goerr.Item, got %T", AllMapErr(result))
+	}
+	if got := item.Message(); got != "email email必须是一个有效的邮箱; name name长度必须至少为8个字符" {
+		t.Fatalf("Message() = %q", got)
+	}
+}
+
+// AllMapErr 测试：嵌套 map 的字段名按点号拼接。
+//
+// 此前实现把内层整段摘要塞进 Field:"user"，产出
+// "user email.email ...; name.name ..."——外层前缀没有下发到内层字段。
 func TestAllMapErr_NestedMapErrors(t *testing.T) {
 	if err := New(); err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	data := map[string]any{
-		"name":  "ab",
-		"email": "invalid",
-	}
-	rules := map[string]any{
-		"name":  "required,min=8",
-		"email": "required,email",
-	}
-	result := Map(data, rules)
+	result := Map(
+		map[string]any{"user": map[string]any{"name": "ab", "email": "invalid"}},
+		map[string]any{"user": map[string]any{"name": "required,min=8", "email": "required,email"}},
+	)
 
-	out := AllMapErr(result)
-	if out == nil {
-		t.Fatal("expected non-nil error")
-	}
-
-	item, ok := goerr.AsItem(out)
+	item, ok := goerr.AsItem(AllMapErr(result))
 	if !ok {
-		t.Fatalf("expected *goerr.Item, got %T", out)
+		t.Fatalf("expected *goerr.Item")
+	}
+	want := "user.email email必须是一个有效的邮箱; user.name name长度必须至少为8个字符"
+	if got := item.Message(); got != want {
+		t.Fatalf("Message() = %q, want %q", got, want)
+	}
+}
+
+// AllMapErr 自定义文案覆盖 Message()，字段摘要保留在 Error() 供日志排障。
+func TestAllMapErr_UserMsgOverridesMessage(t *testing.T) {
+	if err := New(); err != nil {
+		t.Fatalf("New() error = %v", err)
 	}
 
-	msg := item.Message()
-	// 应该包含两个字段错误
-	if !strings.Contains(msg, "name") || !strings.Contains(msg, "email") {
-		t.Fatalf("Message() should contain both field errors, got %q", msg)
+	result := Map(
+		map[string]any{"user": map[string]any{"email": "invalid"}},
+		map[string]any{"user": map[string]any{"email": "required,email"}},
+	)
+
+	item, ok := goerr.AsItem(AllMapErr(result, "注册参数错误"))
+	if !ok {
+		t.Fatalf("expected *goerr.Item")
+	}
+	if item.Message() != "注册参数错误" {
+		t.Fatalf("Message() = %q, want user msg", item.Message())
+	}
+	if !strings.Contains(item.Error(), "user.email") {
+		t.Fatalf("Error() should keep the nested field path, got %q", item.Error())
 	}
 }
 

@@ -269,7 +269,8 @@ rules := map[string]any{
     },
 }
 errs := verify.Map(data, rules)
-// AllMapErr 递归处理嵌套 map，返回 "user.name 长度必须至少为8; user.email 必须是一个有效的邮箱"
+// AllMapErr 递归处理嵌套 map，对外字段名按点号拼接，每层按键名排序：
+//   user.email email必须是一个有效的邮箱; user.name name长度必须至少为8个字符
 if err := verify.AllMapErr(errs); err != nil {
     fmt.Println(err.Error())
 }
