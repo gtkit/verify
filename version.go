@@ -1,4 +1,4 @@
 package verify
 
 // Version is the current package release version.
-const Version = "v1.3.1"
+const Version = "v1.3.2"

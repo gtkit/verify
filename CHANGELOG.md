@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-09
+
 ### Fixed
 - ⚠ 修复 `AllMapErr` 的字段路径错误。该 API 自 v1.3.0 引入，缺陷随 v1.3.0 / v1.3.1 一并发布。两处症状：
   - 扁平 map 下字段名被拼成 `email.email`——`k` 与 `translateValidationErrors` 返回的字段名本就是同一个名字，旧实现仍做 `k + "." + field` 拼接。
